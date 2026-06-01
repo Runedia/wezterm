@@ -14,16 +14,10 @@ use serde::Deserialize;
 #[cfg(feature = "use_serde")]
 use serde::Serialize;
 
-#[cfg(unix)]
-pub mod unix;
-#[cfg(windows)]
 pub mod windows;
 
 pub mod buffered;
 
-#[cfg(unix)]
-pub use self::unix::{UnixTerminal, UnixTerminalWaker as TerminalWaker};
-#[cfg(windows)]
 pub use self::windows::{WindowsTerminal, WindowsTerminalWaker as TerminalWaker};
 
 /// Represents the size of the terminal screen.
