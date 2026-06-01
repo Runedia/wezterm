@@ -32,6 +32,3 @@ termwiz.workspace = true
 time-funcs.workspace = true
 url-funcs.workspace = true
 wezterm-version.workspace = true
-
-[target."cfg(windows)".dependencies]
-winapi.workspace = true

@@ -23,6 +23,3 @@ thiserror.workspace = true
 varbincode.workspace = true
 wezterm-term = { workspace=true, features=["use_serde"] }
 zstd.workspace = true
-
-[dev-dependencies]
-base91.workspace = true

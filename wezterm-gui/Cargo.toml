@@ -48,7 +48,6 @@ emojis.workspace = true
 env-bootstrap.workspace = true
 euclid.workspace = true
 fastrand.workspace = true
-filedescriptor.workspace = true
 finl_unicode.workspace = true
 frecency.workspace = true
 futures.workspace = true
@@ -70,7 +69,6 @@ parking_lot.workspace = true
 portable-pty = { workspace=true, features = ["serde_support"]}
 promise.workspace = true
 rangeset.workspace = true
-ratelim.workspace = true
 rayon.workspace = true
 regex.workspace = true
 serde = {workspace=true, features = ["rc", "derive"]}
@@ -78,7 +76,6 @@ serde_json.workspace = true
 shlex.workspace = true
 smol.workspace = true
 tabout.workspace = true
-tempfile.workspace = true
 terminfo.workspace = true
 termwiz-funcs.workspace = true
 termwiz.workspace = true
@@ -107,7 +104,6 @@ window-funcs.workspace = true
 window.workspace = true
 
 [target.'cfg(windows)'.dependencies]
-shared_library.workspace = true
 winapi = { workspace=true, features = [
     "winuser",
     "consoleapi",

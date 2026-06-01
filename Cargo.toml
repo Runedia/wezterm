@@ -1,9 +1,6 @@
 [workspace]
 members = [
   "bidi",
-  "bidi/generate",
-  "strip-ansi-escapes",
-  "sync-color-schemes",
   "deps/cairo",
   "wezterm",
   "wezterm-blob-leases",
@@ -18,10 +15,6 @@ members = [
   "wezterm-uds",
 ]
 resolver = "2"
-exclude = [
-  "termwiz/codegen",
-  "wezterm-char-props/codegen",
-]
 
 [profile.release]
 opt-level = 3
@@ -43,7 +36,6 @@ async-trait = "0.1"
 async_ossl = { path = "async_ossl" }
 backtrace = "0.3"
 base64 = {version="0.22", default-features=false }
-base91 = { path = "base91" }
 battery = { path = "lua-api-crates/battery" }
 benchmarking = "0.4"
 bintree = { path = "bintree" }
@@ -94,7 +86,6 @@ frecency = { path = "frecency" }
 freetype = { path = "deps/freetype" }
 futures = "0.3"
 gethostname = "0.5"
-getrandom = "0.3.1"
 git2 = { version = "0.20", default-features = false, features = ["https"] }
 gl_generator = "0.14"
 glium = { version = "0.35", default-features = false }
@@ -106,7 +97,6 @@ hdrhistogram = "7.1"
 hex = {version="0.4", default-features=false}
 hostname = "0.4"
 http_req = "0.11"
-human-sort = "0.2"
 humansize = "2.1"
 humantime = "2.1"
 image = "0.25"
@@ -116,7 +106,6 @@ lazy_static = "1.4"
 leb128 = "0.2"
 lfucache = { path = "lfucache" }
 libc = "0.2"
-libflate = "2"
 libloading = "0.8"
 libssh-rs = "0.3.6"
 line_drawing = "0.8"
@@ -147,7 +136,6 @@ percent-encoding = "2.3"
 pest = "2.7"
 pest_derive = "2.7"
 phf = {version="0.11", default-features=false}
-phf_codegen = "0.10"
 pkg-config = "0.3"
 plist = "1.7"
 plugin = { path = "lua-api-crates/plugin" }
@@ -163,9 +151,7 @@ raw-window-handle = "0.6"
 rayon = "1.10"
 rcgen = "0.12"
 regex = "1"
-reqwest = "0.12"
 resize = "0.5"
-rusqlite = "0.32"
 serde = {version="1.0", default-features=false, features = ["derive"]}
 serde-funcs = { path = "lua-api-crates/serde-funcs" }
 serde_json = "1.0"
@@ -182,14 +168,12 @@ smol = "2.0"
 socket2 = "0.5"
 spa = "0.3.1"
 spawn-funcs = { path = "lua-api-crates/spawn-funcs" }
-sqlite-cache = "0.1.4"
 ssh-funcs = { path = "lua-api-crates/ssh-funcs" }
 ssh2 = "0.9.3"
 starship-battery = "0.10"
 strsim = "0.11"
 syn = "1.0"
 tabout = { path = "tabout" }
-tar = "0.4"
 tempfile = "3.20"
 terminfo = "0.9"
 termwiz = { version="0.24.0", path = "termwiz" }
@@ -198,7 +182,6 @@ textwrap = "0.16"
 thiserror = "1.0"
 time-funcs = { path = "lua-api-crates/time-funcs" }
 tiny-skia = "0.11"
-tokio = "1.43"
 toml = "0.8"
 ucd-trie = {version="0.1", default-features=false}
 uds_windows = "1.1"
