@@ -12,8 +12,6 @@ use std::thread;
 use wezterm_gui_subcommands::*;
 use wezterm_mux_server_impl::update_mux_domains_for_server;
 
-mod daemonize;
-
 #[derive(Debug, Parser)]
 #[command(
     about = "Wez's Terminal Emulator\nhttp://github.com/wezterm/wezterm",
@@ -52,10 +50,6 @@ struct Opt {
     #[arg(long = "cwd", value_parser, value_hint=ValueHint::DirPath)]
     cwd: Option<OsString>,
 
-    #[cfg(unix)]
-    #[arg(long, hide = true)]
-    pid_file_fd: Option<i32>,
-
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -81,15 +75,6 @@ fn run() -> anyhow::Result<()> {
 
     let opts = Opt::parse();
 
-    #[cfg(unix)]
-    {
-        // Ensure that we set CLOEXEC on the inherited lock file
-        // before we have an opportunity to spawn any child processes.
-        if let Some(fd) = opts.pid_file_fd {
-            daemonize::set_cloexec(fd, true);
-        }
-    }
-
     config::common_init(
         opts.config_file.as_ref(),
         &opts.config_override,
@@ -103,21 +88,6 @@ fn run() -> anyhow::Result<()> {
         std::env::set_var("SSH_AUTH_SOCK", value);
     }
 
-    #[cfg(unix)]
-    let mut pid_file = None;
-
-    #[cfg(unix)]
-    {
-        if opts.daemonize {
-            pid_file = daemonize::daemonize(&config)?;
-            // When we reach this line, we are in a forked child process,
-            // and the fork will have broken the async-io/reactor state
-            // of the smol runtime.
-            // To resolve this, we will re-exec ourselves in the block
-            // below that was originally Windows-specific
-        }
-    }
-
     if opts.daemonize {
         // On Windows we can't literally daemonize, but we can spawn another copy
         // of ourselves in the background!
@@ -125,16 +95,6 @@ fn run() -> anyhow::Result<()> {
         // so we need to re-exec ourselves to start things back up properly.
         let mut cmd = Command::new(std::env::current_exe().unwrap());
 
-        #[cfg(unix)]
-        {
-            // Inform the new version of ourselves that we already
-            // locked the pidfile so that it can prevent it from
-            // being propagated to its children when they spawn
-            if let Some(fd) = pid_file {
-                cmd.arg("--pid-file-fd");
-                cmd.arg(&fd.to_string());
-            }
-        }
         if opts.skip_config {
             cmd.arg("-n");
         }
@@ -157,7 +117,6 @@ fn run() -> anyhow::Result<()> {
             }
         }
 
-        #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
             cmd.stdout(config.daemon_options.open_stdout()?);
@@ -167,21 +126,6 @@ fn run() -> anyhow::Result<()> {
             let child = cmd.spawn();
             drop(child);
             return Ok(());
-        }
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::CommandExt;
-            if let Some(mask) = umask::UmaskSaver::saved_umask() {
-                unsafe {
-                    cmd.pre_exec(move || {
-                        libc::umask(mask);
-                        Ok(())
-                    });
-                }
-            }
-
-            return Err(anyhow::anyhow!("failed to re-exec: {:?}", cmd.exec()));
         }
     }
 

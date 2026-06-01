@@ -534,7 +534,6 @@ impl WebGpuState {
         // from the window or else the underlying driver will raise an error about
         // the mismatch, so we need to sneakily read through the handle
         match self.handle.window {
-            #[cfg(windows)]
             RawWindowHandle::Win32(h) => {
                 let mut rect = unsafe { std::mem::zeroed() };
                 unsafe { winapi::um::winuser::GetClientRect(h.hwnd.get() as _, &mut rect) };

@@ -10,8 +10,6 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::DirBuilder;
-#[cfg(unix)]
-use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -373,11 +371,6 @@ pub fn create_user_owned_dirs(p: &Path) -> anyhow::Result<()> {
     let mut builder = DirBuilder::new();
     builder.recursive(true);
 
-    #[cfg(unix)]
-    {
-        builder.mode(0o700);
-    }
-
     builder.create(p)?;
     Ok(())
 }
@@ -392,11 +385,6 @@ fn xdg_config_home() -> PathBuf {
 fn config_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
     dirs.push(xdg_config_home());
-
-    #[cfg(unix)]
-    if let Some(d) = std::env::var_os("XDG_CONFIG_DIRS") {
-        dirs.extend(std::env::split_paths(&d).map(|s| PathBuf::from(s).join("wezterm")));
-    }
 
     dirs
 }
@@ -671,10 +659,6 @@ impl ConfigInner {
         config.font_dirs.push(exe_dir.join("../../../assets/fonts"));
         // If we're building for a specific target, the dir
         // level is one deeper.
-        #[cfg(target_os = "macos")]
-        config
-            .font_dirs
-            .push(exe_dir.join("../../../../assets/fonts"));
         // Specify the same DPI used on non-mac systems so
         // that we have consistent values regardless of the
         // operating system that we're running tests on

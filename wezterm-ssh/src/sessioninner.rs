@@ -209,16 +209,8 @@ impl SessionInner {
 
         let (sock, _child) = self.connect_to_host(&hostname, port, verbose)?;
         let raw = {
-            #[cfg(unix)]
-            {
-                use std::os::unix::io::IntoRawFd;
-                sock.into_raw_fd()
-            }
-            #[cfg(windows)]
-            {
-                use std::os::windows::io::IntoRawSocket;
-                sock.into_raw_socket()
-            }
+            use std::os::windows::io::IntoRawSocket;
+            sock.into_raw_socket()
         };
 
         sess.set_option(libssh_rs::SshOption::Socket(raw))?;
@@ -335,15 +327,9 @@ impl SessionInner {
         match self.config.get("proxycommand").map(|s| s.as_str()) {
             Some("none") | None => {}
             Some(proxy_command) => {
-                let mut cmd;
-                if cfg!(windows) {
-                    let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd".to_string());
-                    cmd = std::process::Command::new(comspec);
-                    cmd.args(["/c", proxy_command]);
-                } else {
-                    cmd = std::process::Command::new("sh");
-                    cmd.args(["-c", &format!("exec {}", proxy_command)]);
-                }
+                let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd".to_string());
+                let mut cmd = std::process::Command::new(comspec);
+                cmd.args(["/c", proxy_command]);
 
                 let (a, b) = socketpair()?;
 
@@ -354,20 +340,6 @@ impl SessionInner {
                     .spawn()
                     .with_context(|| format!("spawning ProxyCommand {}", proxy_command))?;
 
-                #[cfg(unix)]
-                unsafe {
-                    use passfd::FdPassingExt;
-                    use std::os::unix::io::{FromRawFd, IntoRawFd};
-
-                    let raw = a.into_raw_fd();
-                    let dest = match self.config.get("proxyusefdpass").map(|s| s.as_str()) {
-                        Some("yes") => raw.recv_fd()?,
-                        _ => raw,
-                    };
-
-                    return Ok((Socket::from_raw_fd(dest), Some(KillOnDropChild(child))));
-                }
-                #[cfg(windows)]
                 unsafe {
                     use std::os::windows::io::{FromRawSocket, IntoRawSocket};
                     return Ok((
@@ -868,11 +840,6 @@ impl SessionInner {
                 .ok_or_else(|| anyhow!("no identity agent in config"))?;
             let mut fd = {
                 use wezterm_uds::UnixStream;
-                #[cfg(unix)]
-                {
-                    FileDescriptor::new(UnixStream::connect(&identity_agent)?)
-                }
-                #[cfg(windows)]
                 unsafe {
                     use std::os::windows::io::{FromRawSocket, IntoRawSocket};
                     FileDescriptor::from_raw_socket(

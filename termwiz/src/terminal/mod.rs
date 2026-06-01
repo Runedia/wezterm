@@ -106,9 +106,6 @@ pub trait Terminal {
 /// Ideally you wouldn't reference `SystemTerminal` in consuming
 /// code.  This type is exposed for convenience if you are doing
 /// something unusual and want easier access to the constructors.
-#[cfg(unix)]
-pub type SystemTerminal = UnixTerminal;
-#[cfg(windows)]
 pub type SystemTerminal = WindowsTerminal;
 
 /// Construct a new instance of Terminal.

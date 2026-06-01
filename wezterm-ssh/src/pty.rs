@@ -72,21 +72,6 @@ impl portable_pty::MasterPty for SshPty {
         Ok(Box::new(writer))
     }
 
-    #[cfg(unix)]
-    fn process_group_leader(&self) -> Option<i32> {
-        // It's not local, so there's no meaningful leader
-        None
-    }
-
-    #[cfg(unix)]
-    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
-        None
-    }
-
-    #[cfg(unix)]
-    fn tty_name(&self) -> Option<std::path::PathBuf> {
-        None
-    }
 }
 
 #[derive(Debug)]

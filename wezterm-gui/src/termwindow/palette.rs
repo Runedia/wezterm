@@ -352,9 +352,7 @@ impl CommandPalette {
                         let mut score: usize = mods.bits() as usize;
                         // Prefer keys with CMD on macOS, but not on other systems,
                         // where CMD tends to be reserved by the desktop environment
-                        if cfg!(target_os = "macos") && mods.contains(Modifiers::SUPER) {
-                            score += 1000;
-                        } else if !cfg!(target_os = "macos") && !mods.contains(Modifiers::SUPER) {
+                        if !mods.contains(Modifiers::SUPER) {
                             score += 1000;
                         }
                         score

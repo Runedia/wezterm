@@ -253,12 +253,6 @@ impl LocalDomain {
         Ok(Self::with_pty_system(&serial_domain.name, pty_system))
     }
 
-    #[cfg(unix)]
-    fn is_conpty(&self) -> bool {
-        false
-    }
-
-    #[cfg(windows)]
     fn is_conpty(&self) -> bool {
         let pty_system = self.pty_system.lock();
         let pty_system: &dyn PtySystem = &**pty_system;
@@ -536,20 +530,6 @@ impl portable_pty::MasterPty for FailedSpawnPty {
         self.inner.lock().take_writer()
     }
 
-    #[cfg(unix)]
-    fn process_group_leader(&self) -> Option<i32> {
-        None
-    }
-
-    #[cfg(unix)]
-    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
-        None
-    }
-
-    #[cfg(unix)]
-    fn tty_name(&self) -> Option<std::path::PathBuf> {
-        None
-    }
 }
 
 /// A fake child process for the case where the spawn attempt
@@ -570,7 +550,6 @@ impl portable_pty::Child for FailedProcessSpawn {
         None
     }
 
-    #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
         None
     }

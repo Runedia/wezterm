@@ -20,7 +20,6 @@ impl WslDomain {
         #[allow(unused_mut)]
         let mut domains = vec![];
 
-        #[cfg(windows)]
         if let Ok(distros) = WslDistro::load_distro_list() {
             for distro in distros {
                 domains.push(WslDomain {
@@ -47,12 +46,10 @@ pub struct WslDistro {
 
 impl WslDistro {
     pub fn load_distro_list() -> anyhow::Result<Vec<Self>> {
-        #[cfg(windows)]
         use std::os::windows::process::CommandExt;
         let mut cmd = std::process::Command::new("wsl.exe");
         cmd.arg("-l");
         cmd.arg("-v");
-        #[cfg(windows)]
         cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
         let output = cmd.output()?;
 

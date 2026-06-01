@@ -1638,13 +1638,7 @@ impl KeyEvent {
         self
     }
 
-    #[cfg(not(windows))]
-    pub fn encode_win32_input_mode(&self) -> Option<String> {
-        None
-    }
-
     /// <https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md>
-    #[cfg(windows)]
     pub fn encode_win32_input_mode(&self) -> Option<String> {
         let phys = self.raw.as_ref()?;
 
@@ -2143,11 +2137,7 @@ pub enum IntegratedTitleButtonStyle {
 
 impl Default for IntegratedTitleButtonStyle {
     fn default() -> Self {
-        if cfg!(target_os = "macos") {
-            Self::MacOsNative
-        } else {
-            Self::Windows
-        }
+        Self::Windows
     }
 }
 
@@ -2165,7 +2155,6 @@ impl FromDynamic for IntegratedTitleButtonStyle {
             let style = match string.as_str() {
                 "Windows" => Self::Windows,
                 "Gnome" => Self::Gnome,
-                "MacOsNative" if cfg!(target_os = "macos") => Self::MacOsNative,
                 _ => {
                     return Err(wezterm_dynamic::Error::InvalidVariantForType {
                         variant_name: string.to_string(),
@@ -2287,13 +2276,7 @@ pub enum UIKeyCapRendering {
 
 impl Default for UIKeyCapRendering {
     fn default() -> Self {
-        if cfg!(target_os = "macos") {
-            Self::AppleSymbols
-        } else if cfg!(windows) {
-            Self::WindowsSymbols
-        } else {
-            Self::UnixLong
-        }
+        Self::WindowsSymbols
     }
 }
 

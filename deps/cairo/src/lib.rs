@@ -1504,24 +1504,6 @@ extern "C" {
     #[cfg_attr(docsrs, doc(cfg(all(windows, feature = "win32-surface"))))]
     pub fn cairo_win32_surface_get_image(surface: *mut cairo_surface_t) -> *mut cairo_surface_t;
 
-    #[cfg(target_os = "macos")]
-    #[cfg_attr(docsrs, doc(cfg(target_os = "macos")))]
-    pub fn cairo_quartz_surface_create(
-        format: cairo_format_t,
-        width: c_uint,
-        height: c_uint,
-    ) -> *mut cairo_surface_t;
-    #[cfg(target_os = "macos")]
-    #[cfg_attr(docsrs, doc(cfg(target_os = "macos")))]
-    pub fn cairo_quartz_surface_create_for_cg_context(
-        cg_context: CGContextRef,
-        width: c_uint,
-        height: c_uint,
-    ) -> *mut cairo_surface_t;
-    #[cfg(target_os = "macos")]
-    #[cfg_attr(docsrs, doc(cfg(target_os = "macos")))]
-    pub fn cairo_quartz_surface_get_cg_context(surface: *mut cairo_surface_t) -> CGContextRef;
-
     // CAIRO SCRIPT
     #[cfg(feature = "script")]
     #[cfg_attr(docsrs, doc(cfg(feature = "script")))]

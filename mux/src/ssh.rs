@@ -935,7 +935,6 @@ impl portable_pty::Child for WrappedSshChild {
         None
     }
 
-    #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
         None
     }
@@ -1087,22 +1086,6 @@ impl portable_pty::MasterPty for WrappedSshPty {
         anyhow::bail!("writer must be created during bootstrap");
     }
 
-    #[cfg(unix)]
-    fn process_group_leader(&self) -> Option<i32> {
-        let mut inner = self.inner.borrow_mut();
-        let _ = inner.check_connected();
-        None
-    }
-
-    #[cfg(unix)]
-    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
-        None
-    }
-
-    #[cfg(unix)]
-    fn tty_name(&self) -> Option<std::path::PathBuf> {
-        None
-    }
 }
 
 impl std::io::Write for PtyWriter {

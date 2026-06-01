@@ -511,10 +511,8 @@ impl ImgCatCommand {
 
         let is_tmux = xt_version.is_tmux();
 
-        // TODO: ideally we'd do some kind of probing to see if conpty
-        // is in the mix. For now we just assume that if we are on windows
-        // then it must be in there somewhere.
-        let is_conpty = cfg!(windows);
+        // On Windows, conpty is always in the mix.
+        let is_conpty = true;
 
         // Not all systems understand that the cursor should move as
         // part of processing the image escapes, so we need to move it
@@ -771,11 +769,7 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
     // Restore the original umask
     drop(saver);
 
-    let exe_name = if cfg!(windows) {
-        "wezterm-gui.exe"
-    } else {
-        "wezterm-gui"
-    };
+    let exe_name = "wezterm-gui.exe";
 
     let exe = std::env::current_exe()?
         .parent()
@@ -783,27 +777,10 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
         .join(exe_name);
 
     let mut cmd = Command::new(exe);
-    if cfg!(windows) {
-        cmd.arg("--attach-parent-console");
-    }
+    cmd.arg("--attach-parent-console");
 
     cmd.args(std::env::args_os().skip(1));
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        // Clean up random fds, except when we're running in an AppImage.
-        // AppImage relies on child processes keeping alive an fd that
-        // references the mount point and if we close it as part of execing
-        // the gui binary, the appimage gets unmounted before we can exec.
-        if std::env::var_os("APPIMAGE").is_none() {
-            portable_pty::unix::close_random_fds();
-        }
-        let res = cmd.exec();
-        return Err(anyhow::anyhow!("failed to exec {cmd:?}: {res:?}"));
-    }
-
-    #[cfg(windows)]
     {
         let mut child = cmd.spawn()?;
         let status = child.wait()?;

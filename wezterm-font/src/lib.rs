@@ -32,8 +32,6 @@ pub mod rasterizer;
 pub mod shaper;
 pub mod units;
 
-#[cfg(all(unix, not(target_os = "macos")))]
-pub mod fcwrap;
 
 pub use crate::rasterizer::RasterizedGlyph;
 pub use crate::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
@@ -581,7 +579,7 @@ impl FontConfigInner {
             fonts.push(font);
         }
 
-        let font_size = if cfg!(windows) { 10. } else { 12. };
+        let font_size = 10.;
 
         (
             TextStyle {

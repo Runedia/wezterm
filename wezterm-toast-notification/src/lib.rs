@@ -1,5 +1,3 @@
-mod dbus;
-mod macos;
 mod windows;
 
 #[derive(Debug, Clone)]
@@ -16,12 +14,7 @@ impl ToastNotification {
     }
 }
 
-#[cfg(windows)]
 use crate::windows as backend;
-#[cfg(all(not(target_os = "macos"), not(windows)))]
-use dbus as backend;
-#[cfg(target_os = "macos")]
-use macos as backend;
 
 mod nop {
     use super::*;
@@ -55,6 +48,3 @@ pub fn persistent_toast_notification(title: &str, message: &str) {
         timeout: None,
     });
 }
-
-#[cfg(target_os = "macos")]
-pub use macos::initialize as macos_initialize;

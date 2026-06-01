@@ -8,9 +8,6 @@ use smol::prelude::*;
 use smol::Async;
 use wezterm_uds::UnixStream;
 
-#[cfg(unix)]
-pub trait AsRawDesc: std::os::unix::io::AsRawFd + std::os::fd::AsFd {}
-#[cfg(windows)]
 pub trait AsRawDesc: std::os::windows::io::AsRawSocket + std::os::windows::io::AsSocket {}
 
 impl AsRawDesc for UnixStream {}
