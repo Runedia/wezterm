@@ -42,16 +42,9 @@ wezterm-uds.workspace = true
 # Not used directly, but is used to centralize the openssl vendor feature selection
 async_ossl.workspace = true
 
-[target.'cfg(unix)'.dependencies]
-passfd.workspace = true
-
 [dev-dependencies]
-assert_fs.workspace = true
 clap.workspace = true
 env_logger.workspace = true
 k9.workspace = true
-predicates.workspace = true
-rstest.workspace = true
 shell-words.workspace = true
 termwiz.workspace = true
-whoami.workspace = true

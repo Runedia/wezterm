@@ -111,39 +111,43 @@ domain.rs, localpane.rs, ssh.rs, ssh_agent.rs, tmux_pty.rs), `umask`, `wezterm-u
 
 **보존 확인:** `config/src/unix.rs`의 `UnixDomain`(Windows AF_UNIX/WSL용)은 유지. `mod unix;` 선언 존속.
 
+### 추가 완료 작업 (B crate 의존성 섹션 + A 루트 workspace.dependencies)
+
+**B — crate별 플랫폼 의존성 섹션 제거:** Windows-거짓 `[target.'cfg(...)'.dependencies]`
+섹션 삭제. `wezterm-toast-notification`(linux/dbus + macos), `wezterm-font`(fontconfig +
+macos), `env-bootstrap`(macos), `config`(unix nix), `termwiz`(unix signal-hook/termios/nix),
+`wezterm`(unix termios), `wezterm-ssh`(unix passfd). `async_ossl`은 vendored openssl을
+`[dependencies]`로 통합. `wezterm-ssh`의 dev-dependencies는 `tests/` 삭제 후 실제
+사용처(examples/ssh.rs, config.rs 단위테스트)만 남기고(`clap`/`env_logger`/`k9`/
+`shell-words`/`termwiz`) 정리.
+
+**A — 루트 `workspace.dependencies` 미참조 항목 34개 제거:**
+`assert_fs, block2, cgl, cocoa, core-foundation, core-graphics, core-text, fontconfig,
+futures-lite, futures-util, mio, objc, objc2, objc2-core-graphics, objc2-foundation,
+objc2-user-notifications, passfd, predicates, rstest, signal-hook, smithay-client-toolkit,
+termios, wayland-backend, wayland-client, wayland-egl, wayland-protocols,
+wayland-protocols-plasma, whoami, x11, xcb, xcb-imdkit, xkbcommon, zbus, zvariant`.
+(`ratelim`은 wezterm-client/gui에서 사용 중이라 유지. `phf_codegen`·`human-sort`는
+멤버가 직접 버전 선언하는 기존 미사용 항목으로 플랫폼과 무관해 범위 외 → 유지.)
+
+**검증:** `cargo check --workspace --all-targets` **exit 0** (사전 결함 bench만 제외).
+미참조 workspace 의존성을 제거하면 멤버의 `.workspace = true`가 끊겨 파싱 오류가 나므로,
+exit 0은 제거 대상이 실제로 전부 미참조였음을 증명한다.
+
 ---
 
-## 🔲 잔여 작업 — 완전 제거를 위해 필요한 것
+## 🔲 잔여 작업 — (대부분 완료)
 
-> 아래 항목은 **Windows 빌드에 무해한 죽은 코드**입니다 (cfg로 비활성). 빌드상 이득은
-> 없으며, 순수하게 저장소를 완전히 Windows 전용으로 정리하기 위한 작업입니다.
-> 규모가 크고(소스 ~241건의 cfg 블록 + 의존성 섹션) 위험 대비 가치가 낮아 보류했습니다.
+> 평면적 플랫폼 제거(소스 cfg, 고아 파일, 의존성 섹션, 루트 workspace 의존성)는 완료
+> 되었습니다. 아래는 선택적 잔여 정리뿐입니다.
 
-### A. 루트 `Cargo.toml`의 `workspace.dependencies`
+### A. 루트 `Cargo.toml`의 `workspace.dependencies` — ✅ 완료
 
-다음 항목이 미사용 상태로 남아 있습니다 (제거하려면 **B의 참조처를 먼저 제거**해야 함 —
-그렇지 않으면 `.workspace = true`가 파싱 오류):
+미참조 항목 34개 제거. 위 "추가 완료 작업" 참조.
 
-```
-cocoa, core-foundation, core-graphics, cgl, objc, objc2,
-objc2-core-graphics, objc2-foundation, objc2-user-notifications,
-plist, shlex(?), x11, xcb, xcb-imdkit, xkbcommon, zbus, zvariant,
-smithay-client-toolkit, wayland-backend, wayland-protocols,
-wayland-protocols-plasma, wayland-client, wayland-egl
-```
+### B. 다른 crate의 플랫폼 의존성 섹션 — ✅ 완료
 
-`wayland-*` (Cargo.toml:237–241)은 현재 어떤 crate도 참조하지 않으므로 **즉시 제거 가능**.
-
-### B. 다른 crate의 플랫폼 의존성 섹션 (제거 필요)
-
-| 파일 | 섹션 | 내용 |
-|------|------|------|
-| `wezterm-font/Cargo.toml:50` | `cfg(target_os = "macos")` | `cocoa`, `core-foundation`, `objc` — 삭제된 `core_text` 잔재 |
-| `wezterm-toast-notification/Cargo.toml:22` | `cfg(target_os="macos")` | `objc2`, `objc2-user-notifications`, `objc2-foundation` |
-| `env-bootstrap/Cargo.toml:39` | `cfg(target_os = "macos")` | macOS env 부트스트랩 의존성 |
-| `wezterm-ssh/Cargo.toml:45` | `cfg(unix)` | `passfd` — fd-passing 코드 제거로 이제 완전 미사용 |
-| `wezterm-ssh/Cargo.toml:48` | `[dev-dependencies]` | `assert_fs`/`rstest`/`env_logger`/`predicates`/`shell-words`/`termwiz`/`whoami`/`clap`/`k9` — `tests/` 삭제로 전부 미사용 |
-| `deps/cairo/Cargo.toml:27` | `xcb = []` feature | X11 cairo backend (검토 필요) |
+Windows-거짓 `[target.'cfg(...)'.dependencies]` 섹션 전부 제거. 위 "추가 완료 작업" 참조.
 
 ### C. 잔존 플랫폼 전용 소스 파일 (삭제 후보) — ✅ 완료
 
@@ -153,45 +157,16 @@ wayland-protocols-plasma, wayland-client, wayland-egl
 
 ### D. 인라인 조건부 컴파일 블록 (Windows 기준 단순화) — ✅ 완료
 
-아래 내용은 완료되었습니다. Windows-거짓 cfg는 전 소스에서 0건. 위 "추가 완료 작업" 참조.
-(원래 집계: `cfg(target_os="macos")` 97건/26파일 + `cfg(unix)` 계열 144건/44파일)
+Windows-거짓 cfg는 전 소스에서 0건(grep 확인). 원래 집계
+`cfg(target_os="macos")` 97건/26파일 + `cfg(unix)` 계열 144건/44파일을
+모두 정리. `cfg(unix)`/`cfg(windows)` 쌍은 "Windows 분기만 남기고 unix 분기 제거"로
+파일별 개별 처리. 위 "추가 완료 작업" 참조.
 
-**`#[cfg(target_os = "macos")]` 블록 — 26개 파일에 97건** (전부 Windows 비활성, 제거 대상):
+### E. `cfg!()` 런타임 매크로 호출 — ✅ 대부분 완료
 
-```
-config/src/{config.rs(3), font.rs(1), lib.rs(1)}
-procinfo/src/{macos.rs(1), lib.rs(3)}
-window/src/{spawn.rs(6), egl.rs(7)}
-env-bootstrap/src/lib.rs(2)
-wezterm-input-types/src/lib.rs(3)
-wezterm-toast-notification/src/{macos.rs(1), lib.rs(3), dbus.rs(1)}, build.rs(1)
-deps/cairo/src/lib.rs(6)
-wezterm-gui/src/{commands.rs(6), build.rs(1), termwindow/resize.rs(1), termwindow/palette.rs(2)}
-wezterm-ssh/tests/e2e/{sftp.rs(31), sftp/file.rs(6), agent_forward.rs(2)}
-wezterm-font/src/lib.rs(1)
-wezterm-open-url/src/lib.rs(4)
-wezterm-client/src/discovery.rs(2)
-pty/examples/{whoami.rs(1), narrow.rs(1)}
-```
-
-**`cfg(unix)` / `cfg(all(unix, not(macos)))` / `cfg(target_os=…)` 블록 — 44개 파일에 144건:**
-주요 위치 — `mux/src/{localpane.rs(11), domain.rs(4), ssh.rs(3), …}`,
-`pty/src/{lib.rs(11), cmdbuilder.rs(11), serial.rs(5)}`, `umask/src/lib.rs(8)`,
-`wezterm-uds/src/lib.rs(8)`, `wezterm-mux-server*`, `config/src/*`, `wezterm-client/src/*` 등.
-
-> ⚠️ 이 블록 중 일부는 **Windows에서도 활성**인 `cfg(unix)`의 반대편(`cfg(windows)`)과
-> 쌍을 이룹니다. 단순 삭제가 아니라 "Windows 분기만 남기고 unix 분기 제거"로 처리해야
-> 하며, 파일별 개별 검토가 필수입니다.
-
-### E. `cfg!()` 런타임 매크로 호출 (선택적 정리)
-
-| 위치 | 패턴 | 처리 |
-|------|------|------|
-| `window/src/egl.rs:417,472` | `cfg!(target_os = "macos")` | 항상 `false` → 분기 제거 가능 |
-| `wezterm/src/main.rs` | `cfg!(windows)` | 항상 `true` → 유지 또는 단순화 |
-| `config/src/unix.rs:121` | `cfg!(windows)` for serve_command | 유지 |
-
-기능적으로는 이미 올바르게 동작하므로 정리는 명료성 목적에 한정됩니다.
+macОS `cfg!(target_os="macos")` 죽은 분기는 D와 함께 제거. 잔존하는
+`cfg!(windows)`/`#[cfg(windows)]`는 Windows에서 항상 참이라 무해하여 일부 유지
+(예: `config/src/unix.rs`의 serve_command). 추가 정리는 순수 명료성 목적.
 
 ### F. 검토 보류 대상 (삭제하면 안 되는 것)
 
@@ -206,13 +181,14 @@ pty/examples/{whoami.rs(1), narrow.rs(1)}
 
 ## 작업 순서 (완전 제거 진행 시 권장)
 
-1. ~~**D·E 인라인 cfg 정리**~~ → ✅ 완료 (E의 macОS `cfg!()` 죽은 분기 포함 정리. 잔존
-   `cfg!(windows)`/`#[cfg(windows)]`는 항상 참이라 무해하여 일부 유지)
+1. ~~**D·E 인라인 cfg 정리**~~ → ✅ 완료
 2. ~~**C 소스 파일 삭제**~~ → ✅ 완료
-3. **B crate 의존성 섹션 제거** → 각 crate `cargo check` ← **다음 작업**
-4. **A 루트 workspace.dependencies 제거** (B 완료 후에만)
-5. 전체 `cargo build --release -p wezterm-gui` + 테스트
+3. ~~**B crate 의존성 섹션 제거**~~ → ✅ 완료
+4. ~~**A 루트 workspace.dependencies 제거**~~ → ✅ 완료
+5. **전체 `cargo build --release -p wezterm-gui` + 실행 테스트** ← 권장 다음 단계
+   (지금까지는 `cargo check`로만 검증 — 실제 릴리스 빌드·기동 확인 필요)
 6. 본 문서 최종 갱신
 
-남은 작업은 **A·B (Cargo.toml 의존성 정리)** 뿐입니다. 각 단계는 독립적이며 중단
-가능합니다. 빌드 무결성은 단계마다 `cargo check`로 보장하십시오.
+평면적 플랫폼 제거는 모두 완료되었습니다. 남은 것은 선택적 정리(`deps/cairo`의
+`xcb`/`xlib` feature, 잔존 `cfg(windows)` 단순화)와 릴리스 빌드 실검증뿐입니다.
+검증은 `cargo check --workspace --all-targets`로 매 단계 exit 0 확인했습니다.
