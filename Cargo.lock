@@ -5953,9 +5953,11 @@ dependencies = [
 name = "wezterm-char-props"
 version = "0.1.3"
 dependencies = [
+ "criterion",
  "k9",
  "phf",
  "serde",
+ "termwiz",
  "ucd-trie",
 ]
 

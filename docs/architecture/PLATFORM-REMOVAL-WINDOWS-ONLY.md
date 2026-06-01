@@ -102,7 +102,7 @@ domain.rs, localpane.rs, ssh.rs, ssh_agent.rs, tmux_pty.rs), `umask`, `wezterm-u
 
 **검증 결과:**
 - 전 소스에서 Windows-거짓 플랫폼 cfg(macos/unix-only/linux/bsd/wayland/not(windows)) **0건** (grep 확인)
-- `cargo check --workspace --all-targets`: **exit 0** (사전 결함인 `wezterm-char-props`의 `wcwidth` 벤치만 제외 — 이 bench는 `criterion`/`termwiz`를 dev-dependency로 선언하지 않은 기존 결함으로, 본 작업과 무관)
+- `cargo check --workspace --all-targets`: **exit 0** (전 타겟 — `wezterm-char-props`의 `wcwidth` 벤치 포함. 이 벤치는 `criterion`/`termwiz` dev-dependency 누락 + API 드리프트로 기존부터 깨져 있던 것을 함께 수정함)
 
 **행동 변화 주의 (의도된 제거):**
 - `wezterm-ssh` `connect_to_host`의 unix fd-passing(`proxyusefdpass`) 경로 제거 — 원래 unix 전용 기능, Windows엔 없었음
@@ -130,7 +130,7 @@ wayland-protocols-plasma, whoami, x11, xcb, xcb-imdkit, xkbcommon, zbus, zvarian
 (`ratelim`은 wezterm-client/gui에서 사용 중이라 유지. `phf_codegen`·`human-sort`는
 멤버가 직접 버전 선언하는 기존 미사용 항목으로 플랫폼과 무관해 범위 외 → 유지.)
 
-**검증:** `cargo check --workspace --all-targets` **exit 0** (사전 결함 bench만 제외).
+**검증:** `cargo check --workspace --all-targets` **exit 0** (전 타겟, 제외 없음).
 미참조 workspace 의존성을 제거하면 멤버의 `.workspace = true`가 끊겨 파싱 오류가 나므로,
 exit 0은 제거 대상이 실제로 전부 미참조였음을 증명한다.
 
