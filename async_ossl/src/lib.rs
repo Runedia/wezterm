@@ -23,7 +23,7 @@ impl std::os::windows::io::AsRawSocket for AsyncSslStream {
 }
 
 impl std::os::windows::io::AsSocket for AsyncSslStream {
-    fn as_socket(&self) -> std::os::windows::io::BorrowedSocket {
+    fn as_socket(&self) -> std::os::windows::io::BorrowedSocket<'_> {
         self.s.get_ref().as_socket()
     }
 }

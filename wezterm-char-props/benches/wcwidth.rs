@@ -1,7 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use termwiz::cell::{grapheme_column_width, UnicodeVersion};
-
-include!("../src/widechar_width.rs");
+use wezterm_char_props::widechar_width::{WcLookupTable, WcWidth};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let table = WcLookupTable::new();

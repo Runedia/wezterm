@@ -551,7 +551,7 @@ impl AsRawSocket for SshStream {
 }
 
 impl AsSocket for SshStream {
-    fn as_socket(&self) -> BorrowedSocket {
+    fn as_socket(&self) -> BorrowedSocket<'_> {
         self.stdout.as_socket()
     }
 }
