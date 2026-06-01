@@ -11,6 +11,29 @@ use std::convert::TryFrom;
 use window::{KeyCode, Modifiers};
 use KeyAssignment::*;
 
+lazy_static::lazy_static! {
+    /// 영어 brief/doc 원문 → 한국어 번역 매핑.
+    /// 빌드 시 JSON 파일을 그대로 임베드하며, 키에 해당하는 항목이
+    /// 없으면 `localize`가 원문을 그대로 반환한다.
+    static ref COMMAND_I18N: std::collections::HashMap<String, String> = {
+        const RAW: &str = include_str!("commands_i18n.ko.json");
+        serde_json::from_str(RAW).unwrap_or_else(|err| {
+            log::warn!("commands_i18n.ko.json 파싱 실패, 영어 원문을 사용합니다: {err}");
+            std::collections::HashMap::new()
+        })
+    };
+}
+
+/// brief/doc 문자열을 번역 테이블로 조회한다.
+/// 매칭되는 한국어가 있으면 소유 문자열로 치환하고,
+/// 없으면 원본 문자열을 그대로 통과시킨다.
+fn localize(text: Cow<'static, str>) -> Cow<'static, str> {
+    match COMMAND_I18N.get(text.as_ref()) {
+        Some(translated) => Cow::Owned(translated.clone()),
+        None => text,
+    }
+}
+
 /// Describes an argument/parameter/context that is required
 /// in order for the command to have meaning.
 /// The intent is for this to be used when filtering the items
@@ -177,8 +200,8 @@ impl CommandDef {
                     def.permute_keys(config)
                 };
                 Some(ExpandedCommand {
-                    brief: def.brief.into(),
-                    doc: def.doc.into(),
+                    brief: localize(def.brief),
+                    doc: localize(def.doc),
                     keys,
                     action,
                     menubar: def.menubar,

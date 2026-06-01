@@ -2388,11 +2388,10 @@ impl TermWindow {
         let title = "Launcher".to_string();
         let args = LauncherActionArgs {
             title: Some(title),
-            flags: LauncherFlags::LAUNCH_MENU_ITEMS
-                | LauncherFlags::WORKSPACES
-                | LauncherFlags::DOMAINS
-                | LauncherFlags::KEY_ASSIGNMENTS
-                | LauncherFlags::COMMANDS,
+            // + 버튼 우클릭 런처는 새 탭 생성 용도로만 사용한다.
+            // 모든 셸 항목은 launch_menu(LAUNCH_MENU_ITEMS)로 통일했으므로
+            // DOMAINS/WORKSPACES/KEY_ASSIGNMENTS/COMMANDS는 모두 제거했다.
+            flags: LauncherFlags::LAUNCH_MENU_ITEMS,
             help_text: None,
             fuzzy_help_text: None,
             alphabet: None,

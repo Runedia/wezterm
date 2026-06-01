@@ -721,7 +721,7 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub use_dead_keys: bool,
 
-    #[dynamic(default)]
+    #[dynamic(default = "default_launch_menu")]
     pub launch_menu: Vec<SpawnCommand>,
 
     #[dynamic(default)]
@@ -897,6 +897,28 @@ impl_lua_conversion_dynamic!(Config);
 
 fn default_one() -> usize {
     1
+}
+
+/// 설정 파일이 launch_menu를 지정하지 않았을 때의 기본 항목.
+/// + 버튼 우클릭 런처에 PowerShell 7과 Windows PowerShell을 노출한다.
+fn default_launch_menu() -> Vec<SpawnCommand> {
+    vec![
+        SpawnCommand {
+            label: Some("New Tab (cmd)".to_string()),
+            args: Some(vec!["cmd.exe".to_string()]),
+            ..Default::default()
+        },
+        SpawnCommand {
+            label: Some("New Tab (PowerShell 7)".to_string()),
+            args: Some(vec!["pwsh.exe".to_string(), "-NoLogo".to_string()]),
+            ..Default::default()
+        },
+        SpawnCommand {
+            label: Some("New Tab (Windows PowerShell)".to_string()),
+            args: Some(vec!["powershell.exe".to_string(), "-NoLogo".to_string()]),
+            ..Default::default()
+        },
+    ]
 }
 
 fn default_ulimit_nofile() -> u64 {
