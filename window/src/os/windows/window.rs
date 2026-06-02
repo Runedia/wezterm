@@ -168,7 +168,11 @@ fn rc_to_pointer(arc: &Rc<RefCell<WindowInner>>) -> *const RefCell<WindowInner> 
 
 fn rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
     // Turn it into an Rc
-    let arc = unsafe { Rc::from_raw(std::mem::transmute(lparam)) };
+    let arc = unsafe {
+        Rc::from_raw(std::mem::transmute::<LPVOID, *const RefCell<WindowInner>>(
+            lparam,
+        ))
+    };
     // Add a ref for the caller
     let cloned = Rc::clone(&arc);
 
@@ -188,17 +192,13 @@ fn rc_from_hwnd(hwnd: HWND) -> Option<Rc<RefCell<WindowInner>>> {
 }
 
 fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
-    unsafe { Rc::from_raw(std::mem::transmute(lparam)) }
+    unsafe { Rc::from_raw(std::mem::transmute::<LPVOID, *const RefCell<WindowInner>>(lparam)) }
 }
 
 fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
-    if cfg!(debug_assertions) && false
-    /* https://github.com/glium/glium/issues/1885 */
-    {
-        glium::debug::DebugCallbackBehavior::DebugMessageOnError
-    } else {
-        glium::debug::DebugCallbackBehavior::Ignore
-    }
+    // glium의 디버그 콜백은 https://github.com/glium/glium/issues/1885 때문에 비활성화한다.
+    // 활성화하려면 DebugCallbackBehavior::DebugMessageOnError 로 교체할 것.
+    glium::debug::DebugCallbackBehavior::Ignore
 }
 
 impl HasDisplayHandle for WindowInner {
@@ -394,8 +394,6 @@ fn decorations_to_style(decorations: WindowDecorations) -> u32 {
         WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
     } else if decorations == WindowDecorations::NONE {
         WS_POPUP
-    } else if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
-        WS_OVERLAPPEDWINDOW
     } else {
         WS_OVERLAPPEDWINDOW
     }
@@ -494,7 +492,7 @@ impl Window {
                 null_mut(),
                 null_mut(),
                 null_mut(),
-                std::mem::transmute(lparam),
+                std::mem::transmute::<*const RefCell<WindowInner>, LPVOID>(lparam),
             )
         };
 
@@ -580,7 +578,7 @@ impl Window {
 
         conn.windows
             .borrow_mut()
-            .insert(hwnd.clone(), Rc::clone(&inner));
+            .insert(hwnd, Rc::clone(&inner));
 
         Ok(window_handle)
     }
@@ -1347,10 +1345,14 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     use winapi::um::uxtheme::MARGINS;
 
     #[allow(non_snake_case)]
+    // Win32 SDK 명칭 그대로 미러링하는 FFI 타입이라 약어 대문자 유지
+    #[allow(clippy::upper_case_acronyms)]
     type WINDOWCOMPOSITIONATTRIB = u32;
     const WCA_USEDARKMODECOLORS: WINDOWCOMPOSITIONATTRIB = 26;
 
     #[allow(non_snake_case)]
+    // Win32 SDK 명칭 그대로 미러링하는 FFI 타입이라 약어 대문자 유지
+    #[allow(clippy::upper_case_acronyms)]
     #[repr(C)]
     pub struct WINDOWCOMPOSITIONATTRIBDATA {
         Attrib: WINDOWCOMPOSITIONATTRIB,
@@ -1632,7 +1634,7 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     };
     let _ = BeginPaint(hwnd, &mut ps);
     // Do nothing right now
-    EndPaint(hwnd, &mut ps);
+    EndPaint(hwnd, &ps);
 
     inner.invalidated = false;
     // Ask the app to repaint in a bit
@@ -1642,7 +1644,7 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     let window_id = inner.hwnd;
     let max_fps = inner.config.max_fps;
     promise::spawn::spawn(async move {
-        async_io::Timer::after(std::time::Duration::from_millis(1000 / max_fps as u64)).await;
+        async_io::Timer::after(std::time::Duration::from_millis(1000 / max_fps)).await;
         Connection::with_window_inner(window_id, move |inner| {
             inner.paint_throttled = false;
             if inner.invalidated {
@@ -2451,8 +2453,7 @@ impl KeyboardLayoutInfo {
             {
                 if let Some(c) = dead
                     .map
-                    .get(&(Self::fixup_mods(key.0), key.1 as u8))
-                    .map(|&c| c)
+                    .get(&(Self::fixup_mods(key.0), key.1 as u8)).copied()
                 {
                     ResolvedDeadKey::Combined(c)
                 } else {

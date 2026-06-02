@@ -10,5 +10,5 @@ publish = false
 
 [dependencies]
 async-io.workspace = true
-openssl = { workspace = true, features=["vendored"] }
+openssl.workspace = true
 

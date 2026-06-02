@@ -10,26 +10,25 @@ use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Display, PartialOrd, Ord, FromDynamic, ToDynamic,
 )]
+#[derive(Default)]
 pub enum FontStyle {
+    #[default]
     Normal,
     Italic,
     Oblique,
 }
 
-impl Default for FontStyle {
-    fn default() -> Self {
-        Self::Normal
-    }
-}
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Display, PartialOrd, Ord, FromDynamic, ToDynamic,
 )]
+#[derive(Default)]
 pub enum FontStretch {
     UltraCondensed,
     ExtraCondensed,
     Condensed,
     SemiCondensed,
+    #[default]
     Normal,
     SemiExpanded,
     Expanded,
@@ -69,11 +68,6 @@ impl FontStretch {
     }
 }
 
-impl Default for FontStretch {
-    fn default() -> Self {
-        Self::Normal
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct FontWeight(u16);
@@ -295,8 +289,8 @@ impl From<&FreeTypeLoadFlags> for String {
     }
 }
 
-impl ToString for FreeTypeLoadFlags {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for FreeTypeLoadFlags {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut s = vec![];
         if *self == Self::DEFAULT {
             s.push("DEFAULT");
@@ -322,7 +316,7 @@ impl ToString for FreeTypeLoadFlags {
         if self.contains(Self::NO_AUTOHINT) {
             s.push("NO_AUTOHINT");
         }
-        s.join("|")
+        write!(f, "{}", s.join("|"))
     }
 }
 
@@ -590,7 +584,7 @@ impl TextStyle {
         // Insert our bundled default JetBrainsMono as a fallback
         // in case their preference doesn't match anything.
         // But don't add it if it is already their preference.
-        if !font.iter().any(|f| *f == default_font) {
+        if !font.contains(&default_font) {
             default_font.is_fallback = true;
             font.push(default_font);
         }
@@ -650,23 +644,22 @@ pub struct StyleRule {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default)]
 pub enum AllowSquareGlyphOverflow {
     Never,
     Always,
+    #[default]
     WhenFollowedBySpace,
 }
 
-impl Default for AllowSquareGlyphOverflow {
-    fn default() -> Self {
-        Self::WhenFollowedBySpace
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default)]
 pub enum FontLocatorSelection {
     /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
     FontConfig,
     /// Use GDI on win32 systems
+    #[default]
     Gdi,
     /// Use CoreText on macOS
     CoreText,
@@ -674,11 +667,6 @@ pub enum FontLocatorSelection {
     ConfigDirsOnly,
 }
 
-impl Default for FontLocatorSelection {
-    fn default() -> Self {
-        FontLocatorSelection::Gdi
-    }
-}
 
 #[derive(Debug, Clone, Copy, FromDynamic, ToDynamic, Default)]
 pub enum FontRasterizerSelection {

@@ -25,12 +25,11 @@ pub fn container_info(attrs: &[Attribute]) -> Result<ContainerInfo> {
 
         for meta in &list.nested {
             match meta {
-                NestedMeta::Meta(Meta::Path(path)) => {
-                    if path.is_ident("debug") {
+                NestedMeta::Meta(Meta::Path(path))
+                    if path.is_ident("debug") => {
                         debug = true;
                         continue;
                     }
-                }
                 NestedMeta::Meta(Meta::NameValue(value)) => {
                     if value.path.is_ident("into") {
                         if let Lit::Str(s) = &value.lit {
@@ -98,7 +97,7 @@ impl<'a> FieldInfo<'a> {
         }
     }
 
-    pub fn from_dynamic(&self, struct_name: &str) -> TokenStream {
+    pub fn gen_from_dynamic(&self, struct_name: &str) -> TokenStream {
         let name = &self.name;
         let ident = &self.field.ident;
         let ty = &self.field.ty;

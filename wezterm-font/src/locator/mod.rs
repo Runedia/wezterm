@@ -28,7 +28,7 @@ impl Display for FontOrigin {
     }
 }
 
-#[derive(Clone, Hash)]
+#[derive(Clone)]
 pub enum FontDataSource {
     OnDisk(PathBuf),
     BuiltIn {
@@ -65,7 +65,7 @@ impl FontDataSource {
                 Ok(Cow::Owned(data))
             }
             Self::BuiltIn { data, .. } => Ok(Cow::Borrowed(data)),
-            Self::Memory { data, .. } => Ok(Cow::Borrowed(&*data)),
+            Self::Memory { data, .. } => Ok(Cow::Borrowed(data)),
         }
     }
 }
@@ -83,6 +83,21 @@ impl PartialEq for FontDataSource {
                 name_a == name_b
             }
             _ => false,
+        }
+    }
+}
+
+impl std::hash::Hash for FontDataSource {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Mirror the fields compared by `PartialEq` so that equal values hash
+        // identically (clippy::derived_hash_with_manual_eq). The derived impl
+        // hashed `data` for the Memory/BuiltIn variants even though `eq` only
+        // compares `name`, which broke the Hash/Eq invariant.
+        std::mem::discriminant(self).hash(state);
+        match self {
+            Self::OnDisk(path) => path.hash(state),
+            Self::BuiltIn { name, .. } => name.hash(state),
+            Self::Memory { name, .. } => name.hash(state),
         }
     }
 }
@@ -141,12 +156,7 @@ impl std::hash::Hash for FontDataHandle {
 
 impl PartialOrd for FontDataHandle {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        (&self.source, self.index, self.variation, &self.origin).partial_cmp(&(
-            &other.source,
-            other.index,
-            other.variation,
-            &other.origin,
-        ))
+        Some(self.cmp(other))
     }
 }
 

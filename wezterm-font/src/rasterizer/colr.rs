@@ -84,6 +84,8 @@ pub enum DrawOp {
     ClosePath,
 }
 
+// 응집되지 않은 인자(cairo 컨텍스트 + 독립 좌표 + 컬러라인), 구조체화가 부자연스러움
+#[allow(clippy::too_many_arguments)]
 pub fn paint_linear_gradient(
     context: &Context,
     x0: f64,
@@ -114,7 +116,7 @@ pub fn paint_linear_gradient(
 
     for stop in &color_line.color_stops {
         let (r, g, b, a) = stop.color.as_srgba_tuple();
-        pattern.add_color_stop_rgba(stop.offset.into(), r.into(), g.into(), b.into(), a.into());
+        pattern.add_color_stop_rgba(stop.offset, r.into(), g.into(), b.into(), a.into());
     }
 
     context.set_source(pattern)?;
@@ -123,6 +125,8 @@ pub fn paint_linear_gradient(
     Ok(())
 }
 
+// 응집되지 않은 인자(cairo 컨텍스트 + 독립 좌표 + 컬러라인), 구조체화가 부자연스러움
+#[allow(clippy::too_many_arguments)]
 pub fn paint_radial_gradient(
     context: &Context,
     x0: f64,
@@ -147,7 +151,7 @@ pub fn paint_radial_gradient(
 
     for stop in &color_line.color_stops {
         let (r, g, b, a) = stop.color.as_srgba_tuple();
-        pattern.add_color_stop_rgba(stop.offset.into(), r.into(), g.into(), b.into(), a.into());
+        pattern.add_color_stop_rgba(stop.offset, r.into(), g.into(), b.into(), a.into());
     }
 
     context.set_source(pattern)?;
@@ -402,7 +406,6 @@ fn apply_sweep_gradient_patches(
                 PI_TIMES_2,
                 color0,
             );
-            return;
         }
     } else {
         let span = angles[n_stops - 1] - angles[0];
@@ -517,7 +520,7 @@ fn normalize_color_line(color_line: &mut ColorLine) -> (f64, f64) {
         }
     }
 
-    (smallest as f64, largest as f64)
+    (smallest, largest)
 }
 
 struct ReduceAnchorsIn {

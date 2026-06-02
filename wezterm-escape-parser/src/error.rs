@@ -10,7 +10,7 @@ use crate::allocate::*;
 /// usecase for this!
 #[derive(thiserror::Error, Debug)]
 #[error(transparent)]
-pub struct Error(pub(crate) InternalError);
+pub struct Error(pub(crate) Box<InternalError>);
 
 /// A Result whose error type is a termwiz Error
 pub type Result<T> = core::result::Result<T, Error>;
@@ -20,7 +20,7 @@ where
     E: Into<InternalError>,
 {
     fn from(err: E) -> Self {
-        Self(err.into())
+        Self(Box::new(err.into()))
     }
 }
 
@@ -30,6 +30,8 @@ where
 /// itself, but since Rust doesn't allow enums with private
 /// variants, we're dancing around with a newtype of an enum
 /// and hiding it from the docs.
+// 외부 크레이트(termwiz·term)에서 ?/.into()로 #[from] 변환 생성. variant 박싱은 from 소스 타입을 바꿔 자동 From 깨짐. Error 뉴타입이 이미 Box<InternalError>로 감싸므로 영향 무해 → 보류
+#[allow(clippy::large_enum_variant)]
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
 #[doc(hidden)]
@@ -161,10 +163,10 @@ where
         C: Display + Send + Sync + 'static,
     {
         self.map_err(|error| {
-            Error(InternalError::Context {
+            Error(Box::new(InternalError::Context {
                 context: context.to_string(),
                 source: Box::new(error),
-            })
+            }))
         })
     }
 
@@ -174,10 +176,10 @@ where
         F: FnOnce() -> C,
     {
         self.map_err(|error| {
-            Error(InternalError::Context {
+            Error(Box::new(InternalError::Context {
                 context: context().to_string(),
                 source: Box::new(error),
-            })
+            }))
         })
     }
 }

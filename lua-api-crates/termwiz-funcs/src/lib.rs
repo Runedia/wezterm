@@ -73,8 +73,8 @@ pub enum FormatColor {
 }
 
 impl FormatColor {
-    fn to_attr(self) -> ColorAttribute {
-        let spec: ColorSpec = self.into();
+    fn to_attr(&self) -> ColorAttribute {
+        let spec: ColorSpec = self.clone().into();
         let attr: ColorAttribute = spec.into();
         attr
     }
@@ -136,14 +136,14 @@ impl termwiz::render::RenderTty for FormatTarget {
 
 pub fn format_as_escapes(items: Vec<FormatItem>) -> anyhow::Result<String> {
     let mut changes: Vec<Change> = items.into_iter().map(Into::into).collect();
-    changes.push(Change::AllAttributes(CellAttributes::default()).into());
+    changes.push(Change::AllAttributes(CellAttributes::default()));
     let mut renderer = new_wezterm_terminfo_renderer();
     let mut target = FormatTarget { target: vec![] };
     renderer.render_to(&changes, &mut target)?;
     Ok(String::from_utf8(target.target)?)
 }
 
-fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
+fn format(_: &Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
     format_as_escapes(items).map_err(mlua::Error::external)
 }
 

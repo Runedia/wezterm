@@ -11,7 +11,6 @@ use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{mem, ptr};
-use winapi::shared::winerror::WAIT_TIMEOUT;
 use winapi::um::consoleapi;
 use winapi::um::synchapi::{CreateEventW, SetEvent, WaitForMultipleObjects};
 use winapi::um::winbase::{INFINITE, WAIT_FAILED, WAIT_OBJECT_0};
@@ -63,6 +62,8 @@ pub trait ConsoleOutputHandle {
     fn get_buffer_contents(&mut self) -> Result<Vec<CHAR_INFO>>;
     fn set_buffer_contents(&mut self, buffer: &[CHAR_INFO]) -> Result<()>;
     fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<()>;
+    // 사각형(left/top/right/bottom)·스크롤 델타(dx/dy)·속성(attr)은 서로 무관한 인자, 구조체화가 부자연스러움. 또한 pub 트레이트라 외부 크레이트 구현 영향으로 보류
+    #[allow(clippy::too_many_arguments)]
     fn scroll_region(
         &mut self,
         left: i16,
@@ -828,7 +829,7 @@ impl Terminal for WindowsTerminal {
                         wait.map(|wait| wait.as_millis() as u32).unwrap_or(INFINITE),
                     )
                 };
-                if result == WAIT_OBJECT_0 + 0 {
+                if result == WAIT_OBJECT_0 {
                     pending = self.input_handle.get_number_of_input_events()?;
                 } else if result == WAIT_OBJECT_0 + 1 {
                     return Ok(Some(InputEvent::Wake));
@@ -837,9 +838,8 @@ impl Terminal for WindowsTerminal {
                         "failed to WaitForMultipleObjects: {}",
                         IoError::last_os_error()
                     );
-                } else if result == WAIT_TIMEOUT {
-                    return Ok(None);
                 } else {
+                    // WAIT_TIMEOUT 및 그 외 결과 모두 입력 없음으로 처리
                     return Ok(None);
                 }
             }

@@ -35,7 +35,7 @@ impl Snapshot {
 
     pub fn iter(&self) -> ProcIter<'_> {
         ProcIter {
-            snapshot: &self,
+            snapshot: self,
             first: true,
         }
     }
@@ -410,10 +410,6 @@ impl LocalProcessInfo {
             }
         }
 
-        if let Some(info) = procs.iter().find(|info| info.th32ProcessID == pid) {
-            Some(build_proc(info, &procs))
-        } else {
-            None
-        }
+        procs.iter().find(|info| info.th32ProcessID == pid).map(|info| build_proc(info, &procs))
     }
 }

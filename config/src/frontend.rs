@@ -22,8 +22,8 @@ pub struct GpuInfo {
 }
 impl_lua_conversion_dynamic!(GpuInfo);
 
-impl ToString for GpuInfo {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for GpuInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut result = format!(
             "name={}, device_type={}, backend={}",
             self.name, self.device_type, self.backend
@@ -40,18 +40,15 @@ impl ToString for GpuInfo {
         if let Some(device) = &self.device {
             result.push_str(&format!(", device={device}"));
         }
-        result
+        write!(f, "{result}")
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default)]
 pub enum WebGpuPowerPreference {
+    #[default]
     LowPower,
     HighPerformance,
 }
 
-impl Default for WebGpuPowerPreference {
-    fn default() -> Self {
-        Self::LowPower
-    }
-}

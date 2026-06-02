@@ -16,7 +16,7 @@ impl AsRawDesc for AsyncSslStream {}
 #[derive(Debug)]
 enum Item {
     Notif(MuxNotification),
-    WritePdu(DecodedPdu),
+    WritePdu(Box<DecodedPdu>),
     Readable,
 }
 
@@ -49,7 +49,7 @@ where
         let item_tx = item_tx.clone();
         move |pdu| {
             item_tx
-                .try_send(Item::WritePdu(pdu))
+                .try_send(Item::WritePdu(Box::new(pdu)))
                 .map_err(|e| anyhow::anyhow!("{:?}", e))
         }
     });

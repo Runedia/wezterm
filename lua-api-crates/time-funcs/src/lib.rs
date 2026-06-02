@@ -100,7 +100,7 @@ impl ScheduledEvent {
         // changed.
         if config::configuration().generation() == generation {
             let args = lua.pack_multi(())?;
-            emit_event(&lua, (self.user_event_id, args)).await?;
+            emit_event(lua, (self.user_event_id, args)).await?;
         }
         Ok(())
     }
@@ -180,17 +180,17 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn strftime_utc<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
+fn strftime_utc(_: &Lua, format: String) -> mlua::Result<String> {
     let local: DateTime<Utc> = Utc::now();
     Ok(local.format(&format).to_string())
 }
 
-fn strftime<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
+fn strftime(_: &Lua, format: String) -> mlua::Result<String> {
     let local: DateTime<Local> = Local::now();
     Ok(local.format(&format).to_string())
 }
 
-async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {
+async fn sleep_ms(_: &Lua, milliseconds: u64) -> mlua::Result<()> {
     let duration = std::time::Duration::from_millis(milliseconds);
     smol::Timer::after(duration).await;
     Ok(())

@@ -75,12 +75,12 @@ impl Child for TmuxChild {
     }
 
     fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> {
-        let &(ref lock, ref var) = &*self.active_lock;
+        let (lock, var) = &*self.active_lock;
         let mut released = lock.lock();
         while !*released {
             var.wait(&mut released);
         }
-        return Ok(ExitStatus::with_exit_code(0));
+        Ok(ExitStatus::with_exit_code(0))
     }
 
     fn process_id(&self) -> Option<u32> {
@@ -97,8 +97,7 @@ struct TmuxChildKiller {}
 
 impl ChildKiller for TmuxChildKiller {
     fn kill(&mut self) -> std::io::Result<()> {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
+        Err(std::io::Error::other(
             "TmuxChildKiller: kill not implemented!",
         ))
     }
@@ -110,10 +109,7 @@ impl ChildKiller for TmuxChildKiller {
 
 impl ChildKiller for TmuxChild {
     fn kill(&mut self) -> std::io::Result<()> {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "TmuxPty: kill not implemented!",
-        ))
+        Err(std::io::Error::other("TmuxPty: kill not implemented!"))
     }
 
     fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {

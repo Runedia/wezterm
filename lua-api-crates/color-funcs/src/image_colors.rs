@@ -9,6 +9,7 @@
 //! * fuzziness is used to avoid looking at every pixel
 //! * The image is resized smaller to reduce the total number
 //!   of pixel candidates
+//!
 //! The results are cached to avoid recomputing on each
 //! evaluation of the config file.
 use crate::ColorWrap;
@@ -178,8 +179,8 @@ fn extract_distinct_colors_lab(
     }
 }
 
-pub fn extract_colors_from_image<'lua>(
-    _: &'lua Lua,
+pub fn extract_colors_from_image(
+    _: &Lua,
     (file_name, params): (String, Option<ExtractColorParams>),
 ) -> mlua::Result<Vec<ColorWrap>> {
     let params = params.unwrap_or_default();

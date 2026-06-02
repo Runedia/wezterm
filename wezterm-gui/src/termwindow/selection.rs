@@ -45,9 +45,8 @@ impl super::TermWindow {
                             col_span.prune_trailing_blanks(seqno);
                         }
 
-                        result
-                            .last_mut()
-                            .map(|line| line.append_line(col_span, seqno));
+                        if let Some(line) = result
+                            .last_mut() { line.append_line(col_span, seqno) }
 
                         last_was_wrapped = last_col_idx == last_phys_idx
                             && phys
@@ -187,7 +186,6 @@ impl super::TermWindow {
                 let start_coord = self
                     .selection(pane.pane_id())
                     .origin
-                    .clone()
                     .unwrap_or(end_word.start);
                 let start_word = SelectionRange::word_around(start_coord, &**pane);
 
@@ -201,7 +199,6 @@ impl super::TermWindow {
                 let start_coord = self
                     .selection(pane.pane_id())
                     .origin
-                    .clone()
                     .unwrap_or(end_line.start);
                 let start_line = SelectionRange::line_around(start_coord, &**pane);
 
@@ -215,7 +212,6 @@ impl super::TermWindow {
                 let start_coord = self
                     .selection(pane.pane_id())
                     .origin
-                    .clone()
                     .unwrap_or(end_word.start);
                 let start_word = SelectionRange::zone_around(start_coord, &**pane);
 

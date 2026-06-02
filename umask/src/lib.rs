@@ -6,6 +6,12 @@
 /// the prior umask when it is dropped.
 pub struct UmaskSaver {}
 
+impl Default for UmaskSaver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UmaskSaver {
     pub fn new() -> Self {
         Self {}

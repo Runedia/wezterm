@@ -7,3 +7,13 @@ ar = "x86_64-w64-mingw32-gcc-ar"
 # enabled for the target, so let's turn that on here.
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+# vendored OpenSSL(C 소스 전체를 매 clean 빌드마다 nmake로 컴파일)을 끄고,
+# vcpkg가 1회 빌드해 둔 시스템 OpenSSL을 링크한다. vcpkg 캐시는 cargo target과
+# 독립이라 cargo clean/release 빌드에서 OpenSSL 재컴파일이 사라진다.
+# triplet은 위 +crt-static(정적 CRT)과 맞추기 위해 x64-windows-static을 쓴다.
+# (x64-windows-static-md는 동적 CRT라 LNK2038 불일치가 난다.)
+# 머신별 vcpkg 위치는 VCPKG_ROOT 환경변수로 지정한다.
+[env]
+OPENSSL_NO_VENDOR = "1"
+VCPKGRS_TRIPLET = "x64-windows-static"

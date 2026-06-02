@@ -198,10 +198,10 @@ fn compute_compatibility_list(
         .into_iter()
         .map(|a| {
             let info = adapter_info_to_gpu_info(a.get_info());
-            let compatible = a.is_surface_supported(&surface);
+            let compatible = a.is_surface_supported(surface);
             format!(
                 "{}, compatible={}",
-                info.to_string(),
+                info,
                 if compatible { "yes" } else { "NO" }
             )
         })
@@ -238,7 +238,7 @@ impl WebGpuState {
             for a in instance.enumerate_adapters(backends) {
                 if !a.is_surface_supported(&surface) {
                     let info = adapter_info_to_gpu_info(a.get_info());
-                    log::warn!("{} is not compatible with surface", info.to_string());
+                    log::warn!("{} is not compatible with surface", info);
                     continue;
                 }
 
@@ -281,7 +281,7 @@ impl WebGpuState {
                 log::warn!(
                     "Your webgpu preferred adapter '{}' was either not \
                      found or is not compatible with your display. Available:\n{}",
-                    preference.to_string(),
+                    preference,
                     adapters.join("\n")
                 );
             }
@@ -533,14 +533,11 @@ impl WebGpuState {
         // lagging behind the true client size. We have to take the very latest value
         // from the window or else the underlying driver will raise an error about
         // the mismatch, so we need to sneakily read through the handle
-        match self.handle.window {
-            RawWindowHandle::Win32(h) => {
-                let mut rect = unsafe { std::mem::zeroed() };
-                unsafe { winapi::um::winuser::GetClientRect(h.hwnd.get() as _, &mut rect) };
-                dims.pixel_width = (rect.right - rect.left) as usize;
-                dims.pixel_height = (rect.bottom - rect.top) as usize;
-            }
-            _ => {}
+        if let RawWindowHandle::Win32(h) = self.handle.window {
+            let mut rect = unsafe { std::mem::zeroed() };
+            unsafe { winapi::um::winuser::GetClientRect(h.hwnd.get() as _, &mut rect) };
+            dims.pixel_width = (rect.right - rect.left) as usize;
+            dims.pixel_height = (rect.bottom - rect.top) as usize;
         }
 
         if dims == *self.dimensions.borrow() {

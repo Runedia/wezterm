@@ -36,16 +36,13 @@ pub use os::*;
 pub use wezterm_input_types::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum Clipboard {
+    #[default]
     Clipboard,
     PrimarySelection,
 }
 
-impl Default for Clipboard {
-    fn default() -> Self {
-        Self::Clipboard
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dimensions {
@@ -86,15 +83,15 @@ pub enum Appearance {
     DarkHighContrast,
 }
 
-impl std::string::ToString for Appearance {
-    fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for Appearance {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s = match self {
             Self::Light => "Light",
             Self::Dark => "Dark",
             Self::LightHighContrast => "LightHighContrast",
             Self::DarkHighContrast => "DarkHighContrast",
-        }
-        .to_string()
+        };
+        write!(f, "{s}")
     }
 }
 
@@ -215,8 +212,10 @@ pub enum WindowEvent {
     AdviseModifiersLedStatus(Modifiers, KeyboardLedStatus),
 }
 
+type WindowEventHandler = Box<dyn FnMut(WindowEvent, &Window)>;
+
 pub struct WindowEventSender {
-    handler: Box<dyn FnMut(WindowEvent, &Window)>,
+    handler: WindowEventHandler,
     window: Option<Window>,
 }
 

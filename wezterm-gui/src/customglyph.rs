@@ -185,17 +185,17 @@ pub enum Block {
     /// Number of 1/8ths: x0, x1, y0, y1 with custom alpha
     Custom(u8, u8, u8, u8, BlockAlpha),
     /// Number of 1/8ths in the upper half
-    UpperBlock(u8),
+    Upper(u8),
     /// Number of 1/8ths in the lower half
-    LowerBlock(u8),
+    Lower(u8),
     /// Number of 1/8ths in the left half
-    LeftBlock(u8),
+    Left(u8),
     /// Number of 1/8ths in the right half
-    RightBlock(u8),
+    Right(u8),
     /// Number of 1/8ths: x0, x1
-    VerticalBlock(u8, u8),
+    Vertical(u8, u8),
     /// Number of 1/8ths: y0, y1
-    HorizontalBlock(u8, u8),
+    Horizontal(u8, u8),
     /// Quadrants
     // ╭──┬──╮
     // │UL│UR│
@@ -590,7 +590,7 @@ pub enum PolyCommand {
 }
 
 impl PolyCommand {
-    fn to_skia(&self, width: usize, height: usize, underline_height: f32, pb: &mut PathBuilder) {
+    fn to_skia(self, width: usize, height: usize, underline_height: f32, pb: &mut PathBuilder) {
         match self {
             Self::MoveTo(x, y) => pb.move_to(
                 x.to_pixel(width, underline_height, width.min(height)),
@@ -661,8 +661,10 @@ impl PolyStyle {
             | PolyStyle::Outline
             | PolyStyle::OutlineHeavy
             | PolyStyle::OutlineAlpha => {
-                let mut stroke = Stroke::default();
-                stroke.width = width;
+                let mut stroke = Stroke {
+                    width,
+                    ..Default::default()
+                };
                 if self == PolyStyle::OutlineHeavy {
                     stroke.width *= 3.01; // NOTE: Changing this makes block cursor disproportionate at different font sizes and resolutions
                 } else if self == PolyStyle::OutlineThin {
@@ -3615,39 +3617,39 @@ impl BlockKey {
             ]),
 
             // [▀] UPPER HALF BLOCK
-            0x2580 => Self::Blocks(&[Block::UpperBlock(4)]),
+            0x2580 => Self::Blocks(&[Block::Upper(4)]),
             // [▁] LOWER 1 EIGHTH BLOCK
-            0x2581 => Self::Blocks(&[Block::LowerBlock(1)]),
+            0x2581 => Self::Blocks(&[Block::Lower(1)]),
             // [▂] LOWER 2 EIGHTHS BLOCK
-            0x2582 => Self::Blocks(&[Block::LowerBlock(2)]),
+            0x2582 => Self::Blocks(&[Block::Lower(2)]),
             // [▃] LOWER 3 EIGHTHS BLOCK
-            0x2583 => Self::Blocks(&[Block::LowerBlock(3)]),
+            0x2583 => Self::Blocks(&[Block::Lower(3)]),
             // [▄] LOWER 4 EIGHTHS BLOCK
-            0x2584 => Self::Blocks(&[Block::LowerBlock(4)]),
+            0x2584 => Self::Blocks(&[Block::Lower(4)]),
             // [▅] LOWER 5 EIGHTHS BLOCK
-            0x2585 => Self::Blocks(&[Block::LowerBlock(5)]),
+            0x2585 => Self::Blocks(&[Block::Lower(5)]),
             // [▆] LOWER 6 EIGHTHS BLOCK
-            0x2586 => Self::Blocks(&[Block::LowerBlock(6)]),
+            0x2586 => Self::Blocks(&[Block::Lower(6)]),
             // [▇] LOWER 7 EIGHTHS BLOCK
-            0x2587 => Self::Blocks(&[Block::LowerBlock(7)]),
+            0x2587 => Self::Blocks(&[Block::Lower(7)]),
             // [█] FULL BLOCK
             0x2588 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Full)]),
             // [▉] LEFT 7 EIGHTHS BLOCK
-            0x2589 => Self::Blocks(&[Block::LeftBlock(7)]),
+            0x2589 => Self::Blocks(&[Block::Left(7)]),
             // [▊] LEFT 6 EIGHTHS BLOCK
-            0x258a => Self::Blocks(&[Block::LeftBlock(6)]),
+            0x258a => Self::Blocks(&[Block::Left(6)]),
             // [▋] LEFT 5 EIGHTHS BLOCK
-            0x258b => Self::Blocks(&[Block::LeftBlock(5)]),
+            0x258b => Self::Blocks(&[Block::Left(5)]),
             // [▌] LEFT 4 EIGHTHS BLOCK
-            0x258c => Self::Blocks(&[Block::LeftBlock(4)]),
+            0x258c => Self::Blocks(&[Block::Left(4)]),
             // [▍] LEFT 3 EIGHTHS BLOCK
-            0x258d => Self::Blocks(&[Block::LeftBlock(3)]),
+            0x258d => Self::Blocks(&[Block::Left(3)]),
             // [▎] LEFT 2 EIGHTHS BLOCK
-            0x258e => Self::Blocks(&[Block::LeftBlock(2)]),
+            0x258e => Self::Blocks(&[Block::Left(2)]),
             // [▏] LEFT 1 EIGHTHS BLOCK
-            0x258f => Self::Blocks(&[Block::LeftBlock(1)]),
+            0x258f => Self::Blocks(&[Block::Left(1)]),
             // [▐] RIGHT HALF BLOCK
-            0x2590 => Self::Blocks(&[Block::RightBlock(4)]),
+            0x2590 => Self::Blocks(&[Block::Right(4)]),
             // [░] LIGHT SHADE
             0x2591 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Light)]),
             // [▒] MEDIUM SHADE
@@ -3655,9 +3657,9 @@ impl BlockKey {
             // [▓] DARK SHADE
             0x2593 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Dark)]),
             // [▔] UPPER ONE EIGHTH BLOCK
-            0x2594 => Self::Blocks(&[Block::UpperBlock(1)]),
+            0x2594 => Self::Blocks(&[Block::Upper(1)]),
             // [▕] RIGHT ONE EIGHTH BLOCK
-            0x2595 => Self::Blocks(&[Block::RightBlock(1)]),
+            0x2595 => Self::Blocks(&[Block::Right(1)]),
             // [▖] QUADRANT LOWER LEFT
             0x2596 => Self::Blocks(&[Block::QuadrantLL]),
             // [▗] QUADRANT LOWER RIGHT
@@ -4239,66 +4241,66 @@ impl BlockKey {
             // [🭯] LOWER TRIANGULAR ONE QUARTER BLOCK
             0x1fb6f => Self::Triangles(Triangle::LOWER, BlockAlpha::Full),
             // [🭰] VERTICAL ONE EIGHTH BLOCK-2
-            0x1fb70 => Self::Blocks(&[Block::VerticalBlock(1, 2)]),
+            0x1fb70 => Self::Blocks(&[Block::Vertical(1, 2)]),
             // [🭱] VERTICAL ONE EIGHTH BLOCK-3
-            0x1fb71 => Self::Blocks(&[Block::VerticalBlock(2, 3)]),
+            0x1fb71 => Self::Blocks(&[Block::Vertical(2, 3)]),
             // [🭲] VERTICAL ONE EIGHTH BLOCK-4
-            0x1fb72 => Self::Blocks(&[Block::VerticalBlock(3, 4)]),
+            0x1fb72 => Self::Blocks(&[Block::Vertical(3, 4)]),
             // [🭳] VERTICAL ONE EIGHTH BLOCK-5
-            0x1fb73 => Self::Blocks(&[Block::VerticalBlock(4, 5)]),
+            0x1fb73 => Self::Blocks(&[Block::Vertical(4, 5)]),
             // [🭴] VERTICAL ONE EIGHTH BLOCK-6
-            0x1fb74 => Self::Blocks(&[Block::VerticalBlock(5, 6)]),
+            0x1fb74 => Self::Blocks(&[Block::Vertical(5, 6)]),
             // [🭵] VERTICAL ONE EIGHTH BLOCK-7
-            0x1fb75 => Self::Blocks(&[Block::VerticalBlock(6, 7)]),
+            0x1fb75 => Self::Blocks(&[Block::Vertical(6, 7)]),
             // [🭶] HORIZONTAL ONE EIGHTH BLOCK-2
-            0x1fb76 => Self::Blocks(&[Block::HorizontalBlock(1, 2)]),
+            0x1fb76 => Self::Blocks(&[Block::Horizontal(1, 2)]),
             // [🭷] HORIZONTAL ONE EIGHTH BLOCK-3
-            0x1fb77 => Self::Blocks(&[Block::HorizontalBlock(2, 3)]),
+            0x1fb77 => Self::Blocks(&[Block::Horizontal(2, 3)]),
             // [🭸] HORIZONTAL ONE EIGHTH BLOCK-4
-            0x1fb78 => Self::Blocks(&[Block::HorizontalBlock(3, 4)]),
+            0x1fb78 => Self::Blocks(&[Block::Horizontal(3, 4)]),
             // [🭹] HORIZONTAL ONE EIGHTH BLOCK-5
-            0x1fb79 => Self::Blocks(&[Block::HorizontalBlock(4, 5)]),
+            0x1fb79 => Self::Blocks(&[Block::Horizontal(4, 5)]),
             // [🭺] HORIZONTAL ONE EIGHTH BLOCK-6
-            0x1fb7a => Self::Blocks(&[Block::HorizontalBlock(5, 6)]),
+            0x1fb7a => Self::Blocks(&[Block::Horizontal(5, 6)]),
             // [🭻] HORIZONTAL ONE EIGHTH BLOCK-7
-            0x1fb7b => Self::Blocks(&[Block::HorizontalBlock(6, 7)]),
+            0x1fb7b => Self::Blocks(&[Block::Horizontal(6, 7)]),
             // [🭼] Left and lower one eighth block
-            0x1fb7c => Self::Blocks(&[Block::LeftBlock(1), Block::LowerBlock(1)]),
+            0x1fb7c => Self::Blocks(&[Block::Left(1), Block::Lower(1)]),
             // [🭽] Left and upper one eighth block
-            0x1fb7d => Self::Blocks(&[Block::LeftBlock(1), Block::UpperBlock(1)]),
+            0x1fb7d => Self::Blocks(&[Block::Left(1), Block::Upper(1)]),
             // [🭾] Right and upper one eighth block
-            0x1fb7e => Self::Blocks(&[Block::RightBlock(1), Block::UpperBlock(1)]),
+            0x1fb7e => Self::Blocks(&[Block::Right(1), Block::Upper(1)]),
             // [🭿] Right and lower one eighth block
-            0x1fb7f => Self::Blocks(&[Block::RightBlock(1), Block::LowerBlock(1)]),
+            0x1fb7f => Self::Blocks(&[Block::Right(1), Block::Lower(1)]),
             // [🮀] UPPER AND LOWER ONE EIGHTH BLOCK
-            0x1fb80 => Self::Blocks(&[Block::UpperBlock(1), Block::LowerBlock(1)]),
+            0x1fb80 => Self::Blocks(&[Block::Upper(1), Block::Lower(1)]),
             // [🮁] HORIZONTAL ONE EIGHTH BLOCK-1358
             0x1fb81 => Self::Blocks(&[
-                Block::UpperBlock(1),
-                Block::HorizontalBlock(2, 3),
-                Block::HorizontalBlock(4, 5),
-                Block::LowerBlock(1),
+                Block::Upper(1),
+                Block::Horizontal(2, 3),
+                Block::Horizontal(4, 5),
+                Block::Lower(1),
             ]),
             // [🮂] Upper One Quarter Block
-            0x1fb82 => Self::Blocks(&[Block::UpperBlock(2)]),
+            0x1fb82 => Self::Blocks(&[Block::Upper(2)]),
             // [🮃] Upper three eighths block
-            0x1fb83 => Self::Blocks(&[Block::UpperBlock(3)]),
+            0x1fb83 => Self::Blocks(&[Block::Upper(3)]),
             // [🮄] Upper five eighths block
-            0x1fb84 => Self::Blocks(&[Block::UpperBlock(5)]),
+            0x1fb84 => Self::Blocks(&[Block::Upper(5)]),
             // [🮅] Upper three quarters block
-            0x1fb85 => Self::Blocks(&[Block::UpperBlock(6)]),
+            0x1fb85 => Self::Blocks(&[Block::Upper(6)]),
             // [🮆] Upper seven eighths block
-            0x1fb86 => Self::Blocks(&[Block::UpperBlock(7)]),
+            0x1fb86 => Self::Blocks(&[Block::Upper(7)]),
             // [🮇] Right One Quarter Block
-            0x1fb87 => Self::Blocks(&[Block::RightBlock(2)]),
+            0x1fb87 => Self::Blocks(&[Block::Right(2)]),
             // [🮈] Right three eighths block
-            0x1fb88 => Self::Blocks(&[Block::RightBlock(3)]),
+            0x1fb88 => Self::Blocks(&[Block::Right(3)]),
             // [🮉] Right five eighths block
-            0x1fb89 => Self::Blocks(&[Block::RightBlock(5)]),
+            0x1fb89 => Self::Blocks(&[Block::Right(5)]),
             // [🮊] Right three quarters block
-            0x1fb8a => Self::Blocks(&[Block::RightBlock(6)]),
+            0x1fb8a => Self::Blocks(&[Block::Right(6)]),
             // [🮋] Right seven eighths block
-            0x1fb8b => Self::Blocks(&[Block::RightBlock(7)]),
+            0x1fb8b => Self::Blocks(&[Block::Right(7)]),
             // [🮌] LEFT HALF MEDIUM SHADE
             0x1fb8c => Self::Blocks(&[Block::Custom(0, 4, 0, 8, BlockAlpha::Medium)]),
             // [🮍] RIGHT HALF MEDIUM SHADE
@@ -4311,24 +4313,24 @@ impl BlockKey {
             0x1fb90 => Self::Blocks(&[Block::Custom(0, 8, 0, 8, BlockAlpha::Medium)]),
             // [🮑] UPPER HALF BLOCK AND LOWER HALF INVERSE MEDIUM SHADE
             0x1fb91 => Self::Blocks(&[
-                Block::UpperBlock(4),
+                Block::Upper(4),
                 Block::Custom(0, 8, 4, 8, BlockAlpha::Medium),
             ]),
             // [🮒] UPPER HALF INVERSE MEDIUM SHADE AND LOWER HALF BLOCK
             0x1fb92 => Self::Blocks(&[
                 Block::Custom(0, 8, 0, 4, BlockAlpha::Medium),
-                Block::LowerBlock(4),
+                Block::Lower(4),
             ]),
             // [🮓] LEFT HALF BLOCK AND RIGHT HALF INVERSE MEDIUM SHADE
             // NOTE: not official!
             0x1fb93 => Self::Blocks(&[
-                Block::LeftBlock(4),
+                Block::Left(4),
                 Block::Custom(4, 8, 0, 8, BlockAlpha::Medium),
             ]),
             // [🮔] LEFT HALF INVERSE MEDIUM SHADE AND RIGHT HALF BLOCK
             0x1fb94 => Self::Blocks(&[
                 Block::Custom(0, 4, 0, 8, BlockAlpha::Medium),
-                Block::RightBlock(4),
+                Block::Right(4),
             ]),
             // [🮕] CHECKER BOARD FILL
             0x1fb95 => Self::Blocks(&[
@@ -4353,7 +4355,7 @@ impl BlockKey {
                 Block::Custom(6, 8, 4, 6, BlockAlpha::Full),
             ]),
             // [🮗] HEAVY HORIZONTAL FILL
-            0x1fb97 => Self::Blocks(&[Block::HorizontalBlock(2, 4), Block::HorizontalBlock(6, 8)]),
+            0x1fb97 => Self::Blocks(&[Block::Horizontal(2, 4), Block::Horizontal(6, 8)]),
             // [🮘] UPPER LEFT TO LOWER RIGHT FILL
             // NOTE: This is a quick placeholder which doesn't scale correctly
             0x1fb98 => Self::Poly(&[
@@ -5028,8 +5030,10 @@ impl GlyphCache {
             style,
         } in polys
         {
-            let mut paint = Paint::default();
-            paint.blend_mode = blend_mode;
+            let mut paint = Paint {
+                blend_mode,
+                ..Default::default()
+            };
             let intensity = intensity.to_scale();
             paint.set_color(
                 tiny_skia::Color::from_rgba(intensity, intensity, intensity, intensity).unwrap(),
@@ -5154,9 +5158,9 @@ impl GlyphCache {
                 descender_plus_two: 0,
                 underline_height: *underline_height,
                 strike_row: 0,
-                cell_size: cell_size.clone(),
+                cell_size: *cell_size,
             },
-            _ => render_metrics.clone(),
+            _ => *render_metrics,
         };
 
         let mut buffer = Image::new(
@@ -5185,28 +5189,28 @@ impl GlyphCache {
                             let bottom = (*y1 as f32) * y_eighth;
                             fill_rect(&mut buffer, left..right, top..bottom, *alpha);
                         }
-                        Block::UpperBlock(num) => {
+                        Block::Upper(num) => {
                             let lower = (*num as f32) * y_eighth;
                             fill_rect(&mut buffer, 0.0..width, 0.0..lower, BlockAlpha::Full);
                         }
-                        Block::LowerBlock(num) => {
+                        Block::Lower(num) => {
                             let upper = ((8 - num) as f32) * y_eighth;
                             fill_rect(&mut buffer, 0.0..width, upper..height, BlockAlpha::Full);
                         }
-                        Block::LeftBlock(num) => {
+                        Block::Left(num) => {
                             let right = (*num as f32) * x_eighth;
                             fill_rect(&mut buffer, 0.0..right, 0.0..height, BlockAlpha::Full);
                         }
-                        Block::RightBlock(num) => {
+                        Block::Right(num) => {
                             let left = ((8 - num) as f32) * x_eighth;
                             fill_rect(&mut buffer, left..width, 0.0..height, BlockAlpha::Full);
                         }
-                        Block::VerticalBlock(x0, x1) => {
+                        Block::Vertical(x0, x1) => {
                             let left = (*x0 as f32) * x_eighth;
                             let right = (*x1 as f32) * x_eighth;
                             fill_rect(&mut buffer, left..right, 0.0..height, BlockAlpha::Full);
                         }
-                        Block::HorizontalBlock(y0, y1) => {
+                        Block::Horizontal(y0, y1) => {
                             let top = (*y0 as f32) * y_eighth;
                             let bottom = (*y1 as f32) * y_eighth;
                             fill_rect(&mut buffer, 0.0..width, top..bottom, BlockAlpha::Full);
@@ -5233,7 +5237,7 @@ impl GlyphCache {
                         &[Poly {
                             path: cmd,
                             intensity: alpha,
-                            style: style,
+                            style,
                         }],
                         &mut buffer,
                         if config::configuration().anti_alias_custom_block_glyphs {
@@ -5465,7 +5469,7 @@ impl GlyphCache {
                         &[Poly {
                             path: cmd,
                             intensity: BlockAlpha::Full,
-                            style: style,
+                            style,
                         }],
                         &mut buffer,
                         if config::configuration().anti_alias_custom_block_glyphs {
@@ -5597,7 +5601,7 @@ impl GlyphCache {
                             &[Poly {
                                 path: cmd,
                                 intensity: BlockAlpha::Full,
-                                style: style,
+                                style,
                             }],
                             &mut buffer,
                             if config::configuration().anti_alias_custom_block_glyphs {
@@ -5766,7 +5770,7 @@ impl GlyphCache {
                             &[Poly {
                                 path: cmd,
                                 intensity: BlockAlpha::Full,
-                                style: style,
+                                style,
                             }],
                             &mut buffer,
                             if config::configuration().anti_alias_custom_block_glyphs {

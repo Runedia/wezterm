@@ -154,7 +154,7 @@ impl portable_pty::ChildKiller for SshChildProcess {
                 channel: self.channel,
                 signame: "HUP",
             }))
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         }
         Ok(())
     }
@@ -180,7 +180,7 @@ impl portable_pty::ChildKiller for SshChildKiller {
                 channel: self.channel,
                 signame: "HUP",
             }))
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         }
         Ok(())
     }

@@ -1,10 +1,10 @@
 mod cellref;
 mod clusterline;
-mod line;
+mod inner;
 mod linebits;
 mod storage;
 mod test;
 mod vecstorage;
 
 pub use cellref::CellRef;
-pub use line::{DoubleClickRange, Line};
+pub use inner::{DoubleClickRange, Line};

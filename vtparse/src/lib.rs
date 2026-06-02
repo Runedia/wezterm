@@ -336,7 +336,7 @@ impl OscState {
             }
         } else if !self.full {
             let mut buf = [0u8; 8];
-            let extend_result = self
+            self
                 .buffer
                 .extend_from_slice(param.encode_utf8(&mut buf).as_bytes());
 
@@ -347,8 +347,6 @@ impl OscState {
                     return;
                 }
             }
-
-            let _ = extend_result;
 
             if self.num_params == 0 {
                 self.num_params = 1;
@@ -841,7 +839,6 @@ mod test {
     #[test]
     fn test_osc_too_many_params() {
         let fields = (0..MAX_OSC + 2)
-            .into_iter()
             .map(|i| i.to_string())
             .collect::<Vec<_>>();
         let input = format!("\x1b]{}\x07", fields.join(";"));
@@ -966,7 +963,7 @@ mod test {
         assert_eq!(
             parse_as_vec(input.as_bytes()),
             vec![VTAction::CsiDispatch {
-                params: params,
+                params,
                 parameters_truncated: false,
                 byte: b'p'
             }]

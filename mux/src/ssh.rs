@@ -79,10 +79,7 @@ pub fn ssh_connect_with_ui(
                 SessionEvent::HostVerify(verify) => {
                     ui.output_str(&format!("{}\n", verify.message));
                     let ok = if let Ok(line) = ui.input("Enter [y/n]> ") {
-                        match line.as_ref() {
-                            "y" | "Y" | "yes" | "YES" => true,
-                            "n" | "N" | "no" | "NO" | _ => false,
-                        }
+                        matches!(line.as_ref(), "y" | "Y" | "yes" | "YES")
                     } else {
                         false
                     };
@@ -198,7 +195,7 @@ pub fn ssh_domain_to_ssh_config(ssh_dom: &SshDomain) -> anyhow::Result<ConfigMap
         }
     };
 
-    let mut ssh_config = ssh_config.for_host(&remote_host_name);
+    let mut ssh_config = ssh_config.for_host(remote_host_name);
     ssh_config.insert(
         "wezterm_ssh_backend".to_string(),
         match ssh_dom
@@ -279,7 +276,7 @@ impl RemoteSshDomain {
                 format!("cd {};", shell_words::quote(&dir))
             } else if let Some(dir) = cmd.get_cwd() {
                 let dir = dir.to_str().context("converting cwd to string")?;
-                format!("cd {};", shell_words::quote(&dir))
+                format!("cd {};", shell_words::quote(dir))
             } else {
                 String::new()
             };
@@ -418,6 +415,8 @@ struct StartNewSessionResult {
 }
 
 /// Carry out the authentication process and create the initial pty.
+// too_many_arguments: 세션·이벤트·여러 채널 송수신단·fd·크기 등 응집되지 않은 인자, 구조체화가 부자연스러움
+#[allow(clippy::too_many_arguments)]
 fn connect_ssh_session(
     session: Session,
     events: smol::channel::Receiver<SessionEvent>,
@@ -553,8 +552,8 @@ fn connect_ssh_session(
                     let size = *self.size.lock().unwrap();
                     if starting_size != size {
                         return Ok(Some(InputEvent::Resized {
-                            cols: size.cols as usize,
-                            rows: size.rows as usize,
+                            cols: size.cols,
+                            rows: size.rows,
                         }));
                     }
                 }
@@ -600,14 +599,13 @@ fn connect_ssh_session(
             SessionEvent::HostVerify(verify) => {
                 shim.output_line(&verify.message)?;
                 let mut editor = LineEditor::new(&mut shim);
-                let mut host = PasswordPromptHost::default();
-                host.echo = true;
+                let mut host = PasswordPromptHost {
+                    echo: true,
+                    ..Default::default()
+                };
                 editor.set_prompt("Enter [y/n]> ");
                 let ok = if let Some(line) = editor.read_line(&mut host)? {
-                    match line.as_ref() {
-                        "y" | "Y" | "yes" | "YES" => true,
-                        "n" | "N" | "no" | "NO" | _ => false,
-                    }
+                    matches!(line.as_ref(), "y" | "Y" | "yes" | "YES")
                 } else {
                     false
                 };
@@ -652,7 +650,7 @@ fn connect_ssh_session(
                 match smol::block_on(session.request_pty(
                     &config::configuration().term,
                     crate::terminal_size_to_pty_size(*size.lock().unwrap())?,
-                    command_line.as_ref().map(|s| s.as_str()),
+                    command_line.as_deref(),
                     Some(env),
                 )) {
                     Err(err) => {
@@ -721,7 +719,7 @@ impl Domain for RemoteSshDomain {
                     &config::configuration().term,
                     crate::terminal_size_to_pty_size(size)
                         .context("compute pty size from terminal size")?,
-                    command_line.as_ref().map(|s| s.as_str()),
+                    command_line.as_deref(),
                     Some(env.clone()),
                 )
                 .await

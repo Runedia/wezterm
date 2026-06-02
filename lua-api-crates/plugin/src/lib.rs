@@ -43,11 +43,9 @@ fn compute_repo_dir(url: &str) -> String {
 
 fn get_remote(repo: &Repository) -> anyhow::Result<Option<Remote<'_>>> {
     let remotes = repo.remotes()?;
-    for remote in remotes.iter() {
-        if let Some(name) = remote {
-            let remote = repo.find_remote(name)?;
-            return Ok(Some(remote));
-        }
+    if let Some(name) = remotes.iter().flatten().next() {
+        let remote = repo.find_remote(name)?;
+        return Ok(Some(remote));
     }
     Ok(None)
 }

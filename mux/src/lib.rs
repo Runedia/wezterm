@@ -95,6 +95,8 @@ pub enum MuxNotification {
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
 
+type Subscriber = Box<dyn Fn(MuxNotification) -> bool + Send + Sync>;
+
 pub struct Mux {
     tabs: RwLock<HashMap<TabId, Arc<Tab>>>,
     panes: RwLock<HashMap<PaneId, Arc<dyn Pane>>>,
@@ -102,7 +104,7 @@ pub struct Mux {
     default_domain: RwLock<Option<Arc<dyn Domain>>>,
     domains: RwLock<HashMap<DomainId, Arc<dyn Domain>>>,
     domains_by_name: RwLock<HashMap<String, Arc<dyn Domain>>>,
-    subscribers: RwLock<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool + Send + Sync>>>,
+    subscribers: RwLock<HashMap<usize, Subscriber>>,
     banner: RwLock<Option<String>>,
     clients: RwLock<HashMap<ClientId, ClientInfo>>,
     identity: RwLock<Option<Arc<ClientId>>>,
@@ -144,7 +146,7 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
 
     loop {
         match rx.read(&mut buf) {
-            Ok(size) if size == 0 => {
+            Ok(0) => {
                 dead.store(true, Ordering::Relaxed);
                 break;
             }
@@ -163,7 +165,7 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
 
                             // Flush prior actions
                             if !actions.is_empty() {
-                                send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
+                                send_actions_to_mux(&pane, dead, std::mem::take(&mut actions));
                                 action_size = 0;
                             }
                         }
@@ -182,7 +184,7 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
                     action.append_to(&mut actions);
 
                     if flush && !actions.is_empty() {
-                        send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
+                        send_actions_to_mux(&pane, dead, std::mem::take(&mut actions));
                         action_size = 0;
                     }
                 });
@@ -217,7 +219,7 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
                         }
                     }
 
-                    send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
+                    send_actions_to_mux(&pane, dead, std::mem::take(&mut actions));
                     deadline = None;
                     action_size = 0;
                 }
@@ -234,7 +236,7 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
     // for very short lived commands so that we don't forget to
     // display what they displayed.
     if !actions.is_empty() {
-        send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
+        send_actions_to_mux(&pane, dead, std::mem::take(&mut actions));
     }
 }
 
@@ -314,7 +316,7 @@ fn read_from_pane_pty(
 
     while !dead.load(Ordering::Relaxed) {
         match reader.read(&mut buf) {
-            Ok(size) if size == 0 => {
+            Ok(0) => {
                 log::trace!("read_pty EOF: pane_id {}", pane_id);
                 break;
             }
@@ -567,11 +569,7 @@ impl Mux {
     }
 
     pub fn iter_clients(&self) -> Vec<ClientInfo> {
-        self.clients
-            .read()
-            .values()
-            .map(|info| info.clone())
-            .collect()
+        self.clients.read().values().cloned().collect()
     }
 
     /// Returns a list of the unique workspace names known to the mux.
@@ -607,7 +605,7 @@ impl Mux {
             .and_then(|ident| {
                 self.clients
                     .read()
-                    .get(&ident)
+                    .get(ident)
                     .and_then(|info| info.active_workspace.clone())
             })
             .unwrap_or_else(|| self.get_default_workspace())
@@ -617,14 +615,14 @@ impl Mux {
     pub fn active_workspace_for_client(&self, ident: &Arc<ClientId>) -> String {
         self.clients
             .read()
-            .get(&ident)
+            .get(ident)
             .and_then(|info| info.active_workspace.clone())
             .unwrap_or_else(|| self.get_default_workspace())
     }
 
     pub fn set_active_workspace_for_client(&self, ident: &Arc<ClientId>, workspace: &str) {
         let mut clients = self.clients.write();
-        if let Some(info) = clients.get_mut(&ident) {
+        if let Some(info) = clients.get_mut(ident) {
             info.active_workspace.replace(workspace.to_string());
             self.notify(MuxNotification::ActiveWorkspaceChanged(ident.clone()));
         }
@@ -1033,8 +1031,8 @@ impl Mux {
     pub fn iter_panes(&self) -> Vec<Arc<dyn Pane>> {
         self.panes
             .read()
-            .iter()
-            .map(|(_, v)| Arc::clone(v))
+            .values()
+            .map(Arc::clone)
             .collect()
     }
 
@@ -1130,7 +1128,7 @@ impl Mux {
                 .get_domain(*domain_id)
                 .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
             SpawnTabDomain::DomainName(name) => {
-                self.get_domain_by_name(&name).ok_or_else(|| {
+                self.get_domain_by_name(name).ok_or_else(|| {
                     let names: Vec<String> = self
                         .domains_by_name
                         .read()
@@ -1300,6 +1298,8 @@ impl Mux {
         Ok((tab, window_id))
     }
 
+    // too_many_arguments: 윈도우·도메인·명령·크기·작업공간·위치 등 응집되지 않은 인자, 구조체화가 부자연스러움
+    #[allow(clippy::too_many_arguments)]
     pub async fn spawn_tab_or_window(
         &self,
         window_id: Option<WindowId>,

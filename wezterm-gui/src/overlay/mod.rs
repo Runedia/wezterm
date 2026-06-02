@@ -23,14 +23,17 @@ pub use debug::show_debug_overlay;
 pub use launcher::{launcher, LauncherArgs, LauncherFlags};
 pub use quickselect::QuickSelectOverlay;
 
+/// 오버레이 시작 함수가 반환하는 (오버레이 페인, 완료 future) 튜플 별칭
+type OverlayResult<T> = (
+    Arc<dyn Pane>,
+    Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
+);
+
 pub fn start_overlay<T, F>(
     term_window: &TermWindow,
     tab: &Arc<Tab>,
     func: F,
-) -> (
-    Arc<dyn Pane>,
-    Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
-)
+) -> OverlayResult<T>
 where
     T: Send + 'static,
     F: Send + 'static + FnOnce(TabId, TermWizTerminal) -> anyhow::Result<T>,
@@ -58,10 +61,7 @@ pub fn start_overlay_pane<T, F>(
     term_window: &TermWindow,
     pane: &Arc<dyn Pane>,
     func: F,
-) -> (
-    Arc<dyn Pane>,
-    Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
-)
+) -> OverlayResult<T>
 where
     T: Send + 'static,
     F: Send + 'static + FnOnce(PaneId, TermWizTerminal) -> anyhow::Result<T>,

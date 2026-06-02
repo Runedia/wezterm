@@ -9,9 +9,12 @@ use winapi::um::libloaderapi::{GetModuleHandleW, *};
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
 
+// gl_generator가 생성한 바인딩. 우리가 유지·관리하지 않으므로 clippy lint를 면제한다.
+#[allow(clippy::all)]
 pub mod ffi {
     include!(concat!(env!("OUT_DIR"), "/wgl_bindings.rs"));
 }
+#[allow(clippy::all)]
 pub mod ffiextra {
     include!(concat!(env!("OUT_DIR"), "/wgl_extra_bindings.rs"));
 }

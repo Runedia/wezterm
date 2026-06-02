@@ -83,7 +83,7 @@ pub struct TmuxDomain {
 }
 
 impl TmuxDomainState {
-    pub fn advance(&self, events: Box<Vec<Event>>) {
+    pub fn advance(&self, events: Vec<Event>) {
         for event in events.iter() {
             let state = *self.state.lock();
             log::debug!("tmux: {:?} in state {:?}", event, state);
@@ -179,17 +179,17 @@ impl TmuxDomainState {
                     self.subscribe_notification();
                     log::info!("tmux session changed:{}", session);
                 }
-                Event::WindowAdd { window } => {
+                Event::WindowAdd { window }
                     // Only handle the new tab, the first empty window handled by sync_window_state
-                    if !self.gui_window.lock().is_none() {
-                        if let Some(session) = *self.tmux_session.lock() {
-                            let mut cmd_queue = self.cmd_queue.as_ref().lock();
-                            cmd_queue.push_back(Box::new(ListAllWindows {
-                                session_id: session,
-                                window_id: Some(*window),
-                            }));
-                            log::info!("tmux window add: {}:{}", session, window);
-                        }
+                    if self.gui_window.lock().is_some() =>
+                {
+                    if let Some(session) = *self.tmux_session.lock() {
+                        let mut cmd_queue = self.cmd_queue.as_ref().lock();
+                        cmd_queue.push_back(Box::new(ListAllWindows {
+                            session_id: session,
+                            window_id: Some(*window),
+                        }));
+                        log::info!("tmux window add: {}:{}", session, window);
                     }
                 }
                 Event::WindowClose { window } => {
@@ -213,10 +213,10 @@ impl TmuxDomainState {
                 }
                 Event::WindowRenamed { window, name } => {
                     let gui_tabs = self.gui_tabs.lock();
-                    if let Some(x) = gui_tabs.get(&window) {
+                    if let Some(x) = gui_tabs.get(window) {
                         let mux = Mux::get();
                         if let Some(tab) = mux.get_tab(x.tab_id) {
-                            tab.set_title(&format!("{}", name));
+                            tab.set_title(&name.to_string());
                         }
                     }
                 }
@@ -325,7 +325,7 @@ impl TmuxDomainState {
                 direction: split_request.direction,
             }));
             TmuxDomainState::schedule_send_next_command(self.domain_id);
-            return Ok(());
+            Ok(())
         } else {
             anyhow::bail!("Could not find the tmux pane peer for local pane: {pane_id}");
         }

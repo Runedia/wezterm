@@ -2,7 +2,8 @@ use anyhow::{anyhow, bail, ensure, Error};
 use std::ffi::c_void;
 use std::rc::Rc;
 
-#[allow(non_camel_case_types, clippy::unreadable_literal)]
+// gl_generator가 생성한 바인딩을 포함하므로 생성 코드 전반의 clippy lint를 면제한다.
+#[allow(non_camel_case_types, clippy::all)]
 pub mod ffi {
     // gl_generator emits these weird cyclical and redundant type references;
     // the types appear to have to be in a module and need to reference super,

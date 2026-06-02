@@ -33,11 +33,11 @@ pub enum RenderFrame<'a> {
 impl RenderContext {
     pub fn allocate_index_buffer(&self, indices: &[u32]) -> anyhow::Result<IndexBuffer> {
         match self {
-            Self::Glium(context) => Ok(IndexBuffer::Glium(GliumIndexBuffer::new(
+            Self::Glium(context) => Ok(IndexBuffer::Glium(Box::new(GliumIndexBuffer::new(
                 context,
                 glium::index::PrimitiveType::TrianglesList,
                 indices,
-            )?)),
+            )?))),
             Self::WebGpu(state) => Ok(IndexBuffer::WebGpu(WebGpuIndexBuffer::new(indices, state))),
         }
     }
@@ -57,10 +57,10 @@ impl RenderContext {
         initializer: &[Vertex],
     ) -> anyhow::Result<VertexBuffer> {
         match self {
-            Self::Glium(context) => Ok(VertexBuffer::Glium(GliumVertexBuffer::dynamic(
+            Self::Glium(context) => Ok(VertexBuffer::Glium(Box::new(GliumVertexBuffer::dynamic(
                 context,
                 initializer,
-            )?)),
+            )?))),
             Self::WebGpu(state) => Ok(VertexBuffer::WebGpu(WebGpuVertexBuffer::new(
                 num_quads * VERTICES_PER_CELL,
                 state,
@@ -115,14 +115,14 @@ impl RenderContext {
             ),
             Self::WebGpu(state) => {
                 let info = adapter_info_to_gpu_info(state.adapter_info.clone());
-                format!("WebGPU: {}", info.to_string())
+                format!("WebGPU: {}", info)
             }
         }
     }
 }
 
 pub enum IndexBuffer {
-    Glium(GliumIndexBuffer<u32>),
+    Glium(Box<GliumIndexBuffer<u32>>),
     WebGpu(WebGpuIndexBuffer),
 }
 
@@ -142,7 +142,7 @@ impl IndexBuffer {
 }
 
 pub enum VertexBuffer {
-    Glium(GliumVertexBuffer<Vertex>),
+    Glium(Box<GliumVertexBuffer<Vertex>>),
     WebGpu(WebGpuVertexBuffer),
 }
 
@@ -338,8 +338,16 @@ pub struct TripleVertexBuffer {
 /// the underlying type.
 /// These ExtendStatic trait impls constrain the transmutes in that way,
 /// so that the type checker can still catch issues.
+///
+/// # Safety
+/// 이 트레이트를 구현하는 타입은 `extend_lifetime`이 수명만 'static으로 연장하고
+/// 실제 타입은 바꾸지 않도록 보장해야 한다. 호출자는 연장된 수명 동안 원본
+/// 데이터가 유효하게 유지됨을 보장해야 한다.
 unsafe trait ExtendStatic {
     type T;
+    /// # Safety
+    /// 반환된 'static 값은 원본 차용이 가리키던 데이터보다 오래 살아 있어서는 안 된다.
+    /// 호출자는 연장된 수명 동안 해당 데이터가 유효하게 유지됨을 보장해야 한다.
     unsafe fn extend_lifetime(self) -> Self::T;
 }
 
@@ -488,10 +496,10 @@ impl RenderLayer {
             let layer0 = vbs[0].map().extend_lifetime();
             let layer1 = vbs[1].map().extend_lifetime();
             let layer2 = vbs[2].map().extend_lifetime();
-            TripleLayerQuadAllocator::Gpu(BorrowedLayers {
+            TripleLayerQuadAllocator::Gpu(Box::new(BorrowedLayers {
                 layers: [layer0, layer1, layer2],
                 _owner: vbs,
-            })
+            }))
         }
     }
 
@@ -521,8 +529,7 @@ impl RenderLayer {
             num_quads,
             verts.len() * std::mem::size_of::<Vertex>()
         );
-        let mut indices = vec![];
-        indices.reserve(num_quads * INDICES_PER_CELL);
+        let mut indices = Vec::with_capacity(num_quads * INDICES_PER_CELL);
 
         for q in 0..num_quads {
             let idx = (q * VERTICES_PER_CELL) as u32;
@@ -587,12 +594,12 @@ impl RenderState {
     ) -> anyhow::Result<Self> {
         loop {
             let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size)?);
-            let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
+            let result = UtilSprites::new(&mut glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
                     let glyph_prog = match &context {
                         RenderContext::Glium(context) => {
-                            Some(Self::compile_prog(&context, Self::glyph_shader)?)
+                            Some(Self::compile_prog(context, Self::glyph_shader)?)
                         }
                         RenderContext::WebGpu(_) => None,
                     };
@@ -636,7 +643,7 @@ impl RenderState {
 
         // Keep the layers sorted by zindex so that they are rendered in
         // the correct order when the layers array is iterated.
-        layers.sort_by(|a, b| a.zindex.cmp(&b.zindex));
+        layers.sort_by_key(|a| a.zindex);
 
         Ok(layer)
     }

@@ -115,6 +115,8 @@ impl<'a> PresentationWidth<'a> {
 
 pub trait FontShaper {
     /// Shape text and return a vector of GlyphInfo
+    // 공개 FontShaper 트레이트 메서드(외부 호출·구현 영향) 보류 — 셰이핑 인자는 응집되지 않음
+    #[allow(clippy::too_many_arguments)]
     fn shape(
         &self,
         text: &str,

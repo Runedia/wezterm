@@ -284,9 +284,7 @@ impl<'lua> Eq for ValuePrinterHelper<'lua> {}
 
 impl<'lua> PartialOrd for ValuePrinterHelper<'lua> {
     fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
-        let lhs = lua_value_to_dynamic(self.value.clone()).unwrap_or(DynValue::Null);
-        let rhs = lua_value_to_dynamic(rhs.value.clone()).unwrap_or(DynValue::Null);
-        lhs.partial_cmp(&rhs)
+        Some(self.cmp(rhs))
     }
 }
 
@@ -322,12 +320,11 @@ fn is_array_style_table(t: &mlua::Table) -> bool {
 
     // Now see if we have contiguous keys.
     // The BTreeSet will iterate the keys in ascending order.
-    let mut expect = 1;
-    for key in keys {
+    for (index, key) in keys.into_iter().enumerate() {
+        let expect = index as i64 + 1;
         if key != expect {
             return false;
         }
-        expect += 1;
     }
 
     true
@@ -343,7 +340,7 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                 self.visited
                     .borrow_mut()
                     .insert(self.value.to_pointer() as usize);
-                if is_array_style_table(&t) {
+                if is_array_style_table(t) {
                     // Treat as list
                     let mut list = fmt.debug_list();
                     for value in t.clone().sequence_values() {
@@ -365,14 +362,17 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                     drop(list);
                     Ok(())
                 } else {
-                    // Treat as map; put it into a BTreeMap so that we have a stable
-                    // order for our tests.
-                    let mut map = BTreeMap::new();
+                    // Treat as map; collect into a Vec and sort by key so that
+                    // we have a stable order for our tests. We avoid a BTreeMap
+                    // here because the key type carries interior mutability (an
+                    // Rc<RefCell<..>> that is not used for ordering), which the
+                    // mutable_key_type lint rejects.
+                    let mut map: Vec<(Self, Self)> = Vec::new();
                     for pair in t.clone().pairs::<LuaValue, LuaValue>() {
                         match pair {
                             Ok(pair) => {
                                 let is_cycle = self.has_cycle(&pair.1);
-                                map.insert(
+                                map.push((
                                     Self {
                                         visited: Rc::clone(&self.visited),
                                         value: pair.0,
@@ -383,7 +383,7 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                                         value: pair.1,
                                         is_cycle,
                                     },
-                                );
+                                ));
                             }
                             Err(err) => {
                                 log::error!("error while retrieving map entry: {}", err);
@@ -391,7 +391,8 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                             }
                         }
                     }
-                    fmt.debug_map().entries(&map).finish()
+                    map.sort_by(|a, b| a.0.cmp(&b.0));
+                    fmt.debug_map().entries(map.iter().map(|(k, v)| (k, v))).finish()
                 }
             }
             LuaValue::UserData(_) if self.is_cycle => {

@@ -236,6 +236,8 @@ impl super::TermWindow {
             .map(|entry| (entry, None))
     }
 
+    // 응집되지 않은 인자(페인·컨텍스트·키코드·수정자·리더 상태·이벤트), 구조체화가 부자연스러움
+    #[allow(clippy::too_many_arguments)]
     fn process_key(
         &mut self,
         pane: &Arc<dyn Pane>,
@@ -250,7 +252,7 @@ impl super::TermWindow {
     ) -> bool {
         if is_down && !leader_active {
             // Check to see if this key-press is the leader activating
-            if let Some(duration) = self.input_map.is_leader(&keycode, raw_modifiers) {
+            if let Some(duration) = self.input_map.is_leader(keycode, raw_modifiers) {
                 // Yes; record its expiration
                 let target = std::time::Instant::now() + duration;
                 self.leader_is_down.replace(target);
@@ -287,7 +289,7 @@ impl super::TermWindow {
 
             if let Some((entry, table_name)) = self.lookup_key(
                 pane,
-                &keycode,
+                keycode,
                 raw_modifiers | leader_mod,
                 only_key_bindings,
             ) {
@@ -305,7 +307,7 @@ impl super::TermWindow {
                 }
 
                 self.key_table_state.did_process_key();
-                let handled = match self.perform_key_assignment(&pane, &entry.action) {
+                let handled = match self.perform_key_assignment(pane, &entry.action) {
                     Ok(PerformAssignmentResult::Handled) => true,
                     Err(_) => true,
                     Ok(_) => false,
@@ -353,8 +355,8 @@ impl super::TermWindow {
                     || (!raw_modifiers.contains(Modifiers::RIGHT_ALT)
                         && !raw_modifiers.contains(Modifiers::LEFT_ALT)
                         && raw_modifiers.contains(Modifiers::ALT)
-                        && !(config.send_composed_key_when_left_alt_is_pressed
-                             || config.send_composed_key_when_right_alt_is_pressed));
+                        && !config.send_composed_key_when_left_alt_is_pressed
+                        && !config.send_composed_key_when_right_alt_is_pressed);
 
             if bypass_compose {
                 if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {
@@ -362,7 +364,7 @@ impl super::TermWindow {
 
                     let mut did_encode = false;
                     if let Some(key_event) = key_event {
-                        if let Some(encoded) = self.encode_win32_input(&pane, &key_event) {
+                        if let Some(encoded) = self.encode_win32_input(pane, key_event) {
                             if self.config.debug_key_events {
                                 log::info!("win32: Encoded input as {:?}", encoded);
                             }
@@ -371,7 +373,7 @@ impl super::TermWindow {
                                 .context("sending win32-input-mode encoded data")
                                 .ok();
                             did_encode = true;
-                        } else if let Some(encoded) = self.encode_kitty_input(&pane, &key_event) {
+                        } else if let Some(encoded) = self.encode_kitty_input(pane, key_event) {
                             if self.config.debug_key_events {
                                 log::info!("kitty: Encoded input as {:?}", encoded);
                             }
@@ -406,7 +408,7 @@ impl super::TermWindow {
                             && !keycode.is_modifier()
                             && self.pane_state(pane.pane_id()).overlay.is_none()
                         {
-                            self.maybe_scroll_to_bottom_for_input(&pane);
+                            self.maybe_scroll_to_bottom_for_input(pane);
                         }
                         if is_down
                             && self.config.hide_mouse_cursor_when_typing
@@ -473,7 +475,7 @@ impl super::TermWindow {
             if self.process_key(
                 &pane,
                 context,
-                &phys_key,
+                phys_key,
                 key.modifiers,
                 leader_active,
                 leader_mod,

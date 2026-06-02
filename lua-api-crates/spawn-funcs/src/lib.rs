@@ -16,7 +16,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn open_with<'lua>(_: &'lua Lua, (url, app): (String, Option<String>)) -> mlua::Result<()> {
+fn open_with(_: &Lua, (url, app): (String, Option<String>)) -> mlua::Result<()> {
     if let Some(app) = app {
         wezterm_open_url::open_with(&url, &app);
     } else {
@@ -25,8 +25,8 @@ fn open_with<'lua>(_: &'lua Lua, (url, app): (String, Option<String>)) -> mlua::
     Ok(())
 }
 
-async fn run_child_process<'lua>(
-    _: &'lua Lua,
+async fn run_child_process(
+    _: &Lua,
     args: Vec<String>,
 ) -> mlua::Result<(bool, BString, BString)> {
     let mut cmd = smol::process::Command::new(&args[0]);
@@ -50,7 +50,7 @@ async fn run_child_process<'lua>(
     ))
 }
 
-async fn background_child_process<'lua>(_: &'lua Lua, args: Vec<String>) -> mlua::Result<()> {
+async fn background_child_process(_: &Lua, args: Vec<String>) -> mlua::Result<()> {
     let mut cmd = smol::process::Command::new(&args[0]);
 
     if args.len() > 1 {

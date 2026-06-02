@@ -100,7 +100,7 @@ fn build_commands(
 
         if let Some(lua) = lua {
             let result = config::lua::emit_sync_callback(
-                &*lua,
+                &lua,
                 ("augment-command-palette".to_string(), (gui_window, pane)),
             )?;
 
@@ -160,7 +160,7 @@ fn build_commands(
             (None, None) => {}
         }
 
-        match a.menubar.cmp(&b.menubar) {
+        match a.menubar.cmp(b.menubar) {
             Ordering::Equal => a.brief.cmp(&b.brief),
             ordering => ordering,
         }
@@ -183,7 +183,7 @@ impl MatchResult {
                 // Pump up the score for an exact match, otherwise
                 // the order may be undesirable if there are a lot
                 // of candidates with the same score
-                u32::max_value()
+                u32::MAX
             } else {
                 score
             },
@@ -366,7 +366,7 @@ impl CommandPalette {
                         ordering => return ordering,
                     }
 
-                    a_key.cmp(&b_key)
+                    a_key.cmp(b_key)
                 });
 
                 let separator = if term_window.config.ui_key_cap_rendering
@@ -456,8 +456,7 @@ impl CommandPalette {
                     term_window
                         .config
                         .command_palette_bg_color
-                        .to_linear()
-                        .into(),
+                        .to_linear(),
                 ),
                 bg: term_window
                     .config

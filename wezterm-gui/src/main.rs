@@ -291,11 +291,10 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
 
     let domain = domain.unwrap_or_else(|| mux.default_domain());
 
-    if !is_connecting {
-        if have_panes_in_domain_and_ws(&domain, &workspace) {
+    if !is_connecting
+        && have_panes_in_domain_and_ws(&domain, &workspace) {
             return Ok(());
         }
-    }
 
     let window_id = {
         // Force the builder to notify the frontend early,
@@ -330,7 +329,7 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
         true
     });
 
-    let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi());
+    let dpi = config.dpi.unwrap_or_else(::window::default_dpi);
     let _tab = domain
         .spawn(
             config.initial_size(dpi as u32, Some(cell_pixel_dims(&config, dpi)?)),
@@ -471,7 +470,7 @@ async fn async_run_terminal_gui(
 
             domain.attach(Some(window_id)).await?;
             let config = config::configuration();
-            let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi());
+            let dpi = config.dpi.unwrap_or_else(::window::default_dpi);
             let tab = domain
                 .spawn(
                     config.initial_size(dpi as u32, Some(cell_pixel_dims(&config, dpi)?)),
@@ -494,41 +493,45 @@ async fn async_run_terminal_gui(
 
 #[derive(Debug)]
 enum Publish {
-    TryPathOrPublish(PathBuf),
-    NoConnectNoPublish,
-    NoConnectButPublish,
+    /// Try connecting to the resolved socket path; publish (start a new GUI)
+    /// if that connection fails.
+    TryConnect(PathBuf),
+    /// Neither connect to an existing GUI nor publish a new one.
+    NoConnect,
+    /// Do not connect to an existing GUI, but publish a new one.
+    Spawn,
 }
 
 impl Publish {
     pub fn resolve(mux: &Arc<Mux>, config: &ConfigHandle, always_new_process: bool) -> Self {
         if mux.default_domain().domain_name() != config.default_domain.as_deref().unwrap_or("local")
         {
-            return Self::NoConnectNoPublish;
+            return Self::NoConnect;
         }
 
         if always_new_process {
-            return Self::NoConnectNoPublish;
+            return Self::NoConnect;
         }
 
         if config::is_config_overridden() {
             // They're using a specific config file: assume that it is
             // different from the running gui
             log::trace!("skip existing gui: config is different");
-            return Self::NoConnectNoPublish;
+            return Self::NoConnect;
         }
 
         match wezterm_client::discovery::resolve_gui_sock_path(
             &crate::termwindow::get_window_class(),
         ) {
-            Ok(path) => Self::TryPathOrPublish(path),
-            Err(_) => Self::NoConnectButPublish,
+            Ok(path) => Self::TryConnect(path),
+            Err(_) => Self::Spawn,
         }
     }
 
     pub fn should_publish(&self) -> bool {
         match self {
-            Self::TryPathOrPublish(_) | Self::NoConnectButPublish => true,
-            Self::NoConnectNoPublish => false,
+            Self::TryConnect(_) | Self::Spawn => true,
+            Self::NoConnect => false,
         }
     }
 
@@ -540,7 +543,7 @@ impl Publish {
         domain: SpawnTabDomain,
         new_tab: bool,
     ) -> anyhow::Result<bool> {
-        if let Publish::TryPathOrPublish(gui_sock) = &self {
+        if let Publish::TryConnect(gui_sock) = &self {
             let dom = config::UnixDomain {
                 socket_path: Some(gui_sock.clone()),
                 no_serve_automatically: true,
@@ -553,17 +556,17 @@ impl Publish {
                     let executor = promise::spawn::ScopedExecutor::new();
                     let command = cmd.clone();
                     let res = block_on(executor.run(async move {
-                        let vers = client.verify_version_compat(&mut ui).await?;
+                        let vers = client.verify_version_compat(&ui).await?;
 
                         if vers.executable_path != std::env::current_exe().context("resolve executable path")? {
-                            *self = Publish::NoConnectNoPublish;
+                            *self = Publish::NoConnect;
                             anyhow::bail!(
                                 "Running GUI is a different executable from us, will start a new one");
                         }
                         if vers.config_file_path
                             != std::env::var_os("WEZTERM_CONFIG_FILE").map(Into::into)
                         {
-                            *self = Publish::NoConnectNoPublish;
+                            *self = Publish::NoConnect;
                             anyhow::bail!(
                                 "Running GUI has different config from us, will start a new one"
                             );
@@ -690,7 +693,7 @@ fn setup_mux(
             .as_deref()
             .unwrap_or(mux::DEFAULT_WORKSPACE),
     );
-    mux.set_active_workspace(&default_workspace_name);
+    mux.set_active_workspace(default_workspace_name);
     crate::update::load_last_release_info_and_set_banner();
     update_mux_domains(config)?;
 
@@ -809,7 +812,7 @@ fn notify_on_panic() {
 
 fn terminate_with_error_message(err: &str) -> ! {
     log::error!("{}; terminating", err);
-    fatal_toast_notification("Wezterm Error", &err);
+    fatal_toast_notification("Wezterm Error", err);
     std::process::exit(1);
 }
 
@@ -871,7 +874,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
 
     let font_config = Rc::new(wezterm_font::FontConfiguration::new(
         Some(config.clone()),
-        config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+        config.dpi.unwrap_or_else(::window::default_dpi) as usize,
     )?);
 
     let render_metrics = crate::utilsprites::RenderMetrics::new(&font_config)?;
@@ -977,8 +980,8 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 let mut is_custom = false;
 
                 let cached_glyph = glyph_cache.cached_glyph(
-                    &info,
-                    &style,
+                    info,
+                    style,
                     followed_by_space,
                     &font,
                     &render_metrics,

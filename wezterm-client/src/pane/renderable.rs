@@ -148,9 +148,10 @@ impl RenderableInner {
     /// Open questions:
     /// how do we tell if the intent is to suppress local echo during eg:
     ///  * password prompt?  One option is to look back and see if the line
-    ///                      looks like a password prompt.
+    ///    looks like a password prompt.
     ///  * normal mode in vim: letter presses are typically movement or
-    ///                        other editor commands
+    ///    other editor commands
+    ///
     /// There are bound to be a number of other edge cases that we should
     /// handle.
     fn apply_prediction(&mut self, c: KeyCode, line: &mut Line) {
@@ -182,12 +183,11 @@ impl RenderableInner {
             KeyCode::Delete => {
                 line.erase_cell(self.cursor_position.x, SEQ_ZERO);
             }
-            KeyCode::Backspace => {
-                if self.cursor_position.x > 0 {
+            KeyCode::Backspace
+                if self.cursor_position.x > 0 => {
                     line.erase_cell(self.cursor_position.x - 1, SEQ_ZERO);
                     self.cursor_position.x -= 1;
                 }
-            }
             KeyCode::Char(c) => {
                 let cell = Cell::new(
                     c,
@@ -761,8 +761,8 @@ impl RenderableState {
                 }
             };
 
-            if inner.client.overlay_lag_indicator && idx == inner.dimensions.physical_top {
-                if inner.is_tardy() {
+            if inner.client.overlay_lag_indicator && idx == inner.dimensions.physical_top
+                && inner.is_tardy() {
                     let status = format!(
                         "wezterm: {:.0?}⏳since last response",
                         inner.last_recv_time.elapsed()
@@ -782,7 +782,6 @@ impl RenderableState {
                         .unwrap()
                         .overlay_text_with_attribute(col, &status, attr, SEQ_ZERO);
                 }
-            }
 
             inner.lines.put(idx, entry);
         }

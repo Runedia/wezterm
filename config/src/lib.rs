@@ -80,7 +80,7 @@ lazy_static! {
 }
 
 thread_local! {
-    static LUA_CONFIG: RefCell<Option<LuaConfigState>> = RefCell::new(None);
+    static LUA_CONFIG: RefCell<Option<LuaConfigState>> = const { RefCell::new(None) };
 }
 
 fn toml_table_has_numeric_keys(t: &toml::value::Table) -> bool {
@@ -383,10 +383,7 @@ fn xdg_config_home() -> PathBuf {
 }
 
 fn config_dirs() -> Vec<PathBuf> {
-    let mut dirs = Vec::new();
-    dirs.push(xdg_config_home());
-
-    dirs
+    vec![xdg_config_home()]
 }
 
 pub fn set_config_file_override(path: &Path) {
@@ -550,10 +547,8 @@ impl ConfigInner {
 
     fn accumulate_watch_paths(lua: &Lua, watch_paths: &mut Vec<PathBuf>) {
         if let Ok(mlua::Value::Table(tbl)) = lua.named_registry_value("wezterm-watch-paths") {
-            for path in tbl.sequence_values::<String>() {
-                if let Ok(path) = path {
-                    watch_paths.push(PathBuf::from(path));
-                }
+            for path in tbl.sequence_values::<String>().flatten() {
+                watch_paths.push(PathBuf::from(path));
             }
         }
     }
@@ -584,7 +579,7 @@ impl ConfigInner {
                 // don't keep reloading every time something in the
                 // home dir changes!
                 // <https://github.com/wezterm/wezterm/issues/1895>
-                if parent != &*HOME_DIR {
+                if parent != *HOME_DIR {
                     watch_paths.push(parent.to_path_buf());
                 }
             }
@@ -671,6 +666,12 @@ impl ConfigInner {
 
 pub struct Configuration {
     inner: Mutex<ConfigInner>,
+}
+
+impl Default for Configuration {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Configuration {
@@ -794,7 +795,7 @@ impl ConfigHandle {
 impl std::ops::Deref for ConfigHandle {
     type Target = Config;
     fn deref(&self) -> &Config {
-        &*self.config
+        &self.config
     }
 }
 

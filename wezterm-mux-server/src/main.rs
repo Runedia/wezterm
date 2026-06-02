@@ -104,7 +104,7 @@ fn run() -> anyhow::Result<()> {
         }
         for (name, value) in &opts.config_override {
             cmd.arg("--config");
-            cmd.arg(&format!("{name}={value}"));
+            cmd.arg(format!("{name}={value}"));
         }
         if let Some(cwd) = opts.cwd {
             cmd.arg("--cwd");

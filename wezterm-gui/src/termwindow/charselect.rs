@@ -254,7 +254,7 @@ impl MatchResult {
                 // Pump up the score for an exact match, otherwise
                 // the order may be undesirable if there are a lot
                 // of candidates with the same score
-                u32::max_value()
+                u32::MAX
             } else {
                 score
             },
@@ -302,7 +302,7 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
                                 glyph,
                                 MatchResult {
                                     row_idx,
-                                    score: u32::max_value(),
+                                    score: u32::MAX,
                                 },
                             ))
                         } else {
@@ -376,6 +376,8 @@ impl CharSelector {
         }
     }
 
+    // 응집되지 않은 인자(윈도우·선택 문자열·그룹·별칭·매칭 결과·행 위치들), 구조체화가 부자연스러움
+    #[allow(clippy::too_many_arguments)]
     fn compute(
         term_window: &mut TermWindow,
         selection: &str,
@@ -475,7 +477,7 @@ impl CharSelector {
         let element = Element::new(&font, ElementContent::Children(elements))
             .colors(ElementColors {
                 border: BorderColor::new(
-                    term_window.config.char_select_bg_color.to_linear().into(),
+                    term_window.config.char_select_bg_color.to_linear(),
                 ),
                 bg: term_window.config.char_select_bg_color.to_linear().into(),
                 text: term_window.config.char_select_fg_color.to_linear().into(),

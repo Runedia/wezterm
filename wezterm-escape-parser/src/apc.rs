@@ -3,7 +3,7 @@ use crate::osc::{base64_decode, base64_encode};
 use core::fmt::{Display, Error as FmtError, Formatter};
 
 fn get<'a>(keys: &BTreeMap<&str, &'a str>, k: &str) -> Option<&'a str> {
-    keys.get(k).map(|&s| s)
+    keys.get(k).copied()
 }
 
 fn geti<T: core::str::FromStr>(keys: &BTreeMap<&str, &str>, k: &str) -> Option<T> {
@@ -110,17 +110,17 @@ impl KittyImageData {
         match t {
             "d" => Some(Self::Direct(String::from_utf8(payload.to_vec()).ok()?)),
             "f" => Some(Self::File {
-                path: String::from_utf8(base64_decode(payload.to_vec()).ok()?).ok()?,
+                path: String::from_utf8(base64_decode(payload).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
             "t" => Some(Self::TemporaryFile {
-                path: String::from_utf8(base64_decode(payload.to_vec()).ok()?).ok()?,
+                path: String::from_utf8(base64_decode(payload).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
             "s" => Some(Self::SharedMem {
-                name: String::from_utf8(base64_decode(payload.to_vec()).ok()?).ok()?,
+                name: String::from_utf8(base64_decode(payload).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
@@ -142,7 +142,7 @@ impl KittyImageData {
                 data_size,
             } => {
                 keys.insert("t", "f".to_string());
-                keys.insert("payload", base64_encode(&path));
+                keys.insert("payload", base64_encode(path));
                 set(keys, "S", data_size);
                 set(keys, "S", data_offset);
             }
@@ -152,7 +152,7 @@ impl KittyImageData {
                 data_size,
             } => {
                 keys.insert("t", "t".to_string());
-                keys.insert("payload", base64_encode(&path));
+                keys.insert("payload", base64_encode(path));
                 set(keys, "S", data_size);
                 set(keys, "S", data_offset);
             }
@@ -162,7 +162,7 @@ impl KittyImageData {
                 data_size,
             } => {
                 keys.insert("t", "s".to_string());
-                keys.insert("payload", base64_encode(&name));
+                keys.insert("payload", base64_encode(name));
                 set(keys, "S", data_size);
                 set(keys, "S", data_offset);
             }
@@ -197,12 +197,10 @@ impl KittyImageData {
         }
 
         match self {
-            Self::Direct(data) => base64_decode(data).or_else(|err| {
-                Err(std::io::Error::new(
+            Self::Direct(data) => base64_decode(data).map_err(|err| std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("base64 decode: {err:#}"),
-                ))
-            }),
+                )),
             Self::DirectBin(bin) => Ok(bin),
             Self::File {
                 path,
@@ -226,11 +224,10 @@ impl KittyImageData {
                         return true;
                     }
 
-                    if let Ok(t) = std::env::var("TMPDIR") {
-                        if p.starts_with(&t) {
+                    if let Ok(t) = std::env::var("TMPDIR")
+                        && p.starts_with(&t) {
                             return true;
                         }
-                    }
 
                     false
                 }
@@ -364,13 +361,12 @@ mod win {
         data_offset: Option<u32>,
         data_size: Option<u32>,
     ) -> std::result::Result<std::vec::Vec<u8>, std::io::Error> {
-        let wide_name = wide_string(&name);
+        let wide_name = wide_string(name);
 
         let handle = unsafe { OpenFileMappingW(FILE_MAP_ALL_ACCESS, 0, wide_name.as_ptr()) };
         if handle.is_null() {
             let err = std::io::Error::last_os_error();
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            return Err(std::io::Error::other(
                 format!("OpenFileMappingW {} failed: {:#}", name, err),
             ));
         }
@@ -379,8 +375,7 @@ mod win {
         let buf = unsafe { MapViewOfFile(handle_wrapper.handle, FILE_MAP_ALL_ACCESS, 0, 0, 0) };
         if buf.is_null() {
             let err = std::io::Error::last_os_error();
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            return Err(std::io::Error::other(
                 format!("MapViewOfFile failed: {:#}", err),
             ));
         }
@@ -400,8 +395,7 @@ mod win {
         };
         if res == 0 {
             let err = std::io::Error::last_os_error();
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            return Err(std::io::Error::other(
                 format!(
                     "Can't get the size of Shared Memory, VirtualQuery failed: {:#}",
                     err
@@ -411,8 +405,7 @@ mod win {
         let mut size = memory_info.RegionSize;
         let offset = data_offset.unwrap_or(0) as usize;
         if offset >= size {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            return Err(std::io::Error::other(
                 format!(
                     "offset {} bigger than or equal to shm region size {}",
                     offset, size
@@ -450,7 +443,7 @@ impl KittyImageVerbosity {
         }
     }
 
-    fn to_keys(&self, keys: &mut BTreeMap<&'static str, String>) {
+    fn to_keys(self, keys: &mut BTreeMap<&'static str, String>) {
         match self {
             Self::Verbose => {}
             Self::OnlyErrors => {
@@ -1067,9 +1060,9 @@ impl KittyImage {
         let key_string = core::str::from_utf8(keys).ok()?;
         let mut keys: BTreeMap<&str, &str> = BTreeMap::new();
         for k_v in key_string.split(',') {
-            let mut k_v = k_v.splitn(2, '=');
-            let k = k_v.next()?;
-            let v = k_v.next()?;
+            let (k, v) = k_v.split_once('=')?;
+            
+            
             keys.insert(k, v);
         }
 

@@ -309,6 +309,9 @@ impl BoxedQuad {
 }
 
 #[derive(Default)]
+// BoxedQuad를 개별 Box로 두는 것은 의도된 설계다: Vec<BoxedQuad>로 펴면 수 MB 단위
+// 연속 메모리를 재할당해야 해 성능에 불리하므로 quad마다 Box 할당을 유지한다.
+#[allow(clippy::vec_box)]
 pub struct HeapQuadAllocator {
     layer0: Vec<Box<BoxedQuad>>,
     layer1: Vec<Box<BoxedQuad>>,
@@ -375,7 +378,7 @@ impl TripleLayerQuadAllocatorTrait for HeapQuadAllocator {
 }
 
 pub enum TripleLayerQuadAllocator<'a> {
-    Gpu(BorrowedLayers),
+    Gpu(Box<BorrowedLayers>),
     Heap(&'a mut HeapQuadAllocator),
 }
 

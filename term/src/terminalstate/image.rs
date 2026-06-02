@@ -257,7 +257,7 @@ impl TerminalState {
     pub(crate) fn raw_image_to_image_data(
         &mut self,
         data: ImageDataType,
-    ) -> Result<Arc<ImageData>, termwiz::error::InternalError> {
+    ) -> Result<Arc<ImageData>, termwiz::error::Error> {
         let key = data.compute_hash();
         if let Some(item) = self.image_cache.get(&key) {
             Ok(Arc::clone(item))

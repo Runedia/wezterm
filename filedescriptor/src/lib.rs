@@ -168,6 +168,14 @@ pub trait IntoRawFileDescriptor {
 /// to indicate that care must be taken by the caller to ensure that it
 /// is used appropriately.
 pub trait FromRawFileDescriptor {
+    /// # Safety
+    ///
+    /// The caller must ensure that `fd` is a valid, open platform file
+    /// descriptor and that ownership of it is being transferred to the
+    /// resulting value. After this call, the resulting value assumes sole
+    /// responsibility for closing `fd`; the caller must not close `fd`
+    /// itself or use it after this call, and must not pass the same `fd`
+    /// to this function more than once.
     unsafe fn from_raw_file_descriptor(fd: RawFileDescriptor) -> Self;
 }
 
@@ -178,6 +186,14 @@ pub trait IntoRawSocketDescriptor {
     fn into_socket_descriptor(self) -> SocketDescriptor;
 }
 pub trait FromRawSocketDescriptor {
+    /// # Safety
+    ///
+    /// The caller must ensure that `fd` is a valid, open platform socket
+    /// descriptor and that ownership of it is being transferred to the
+    /// resulting value. After this call, the resulting value assumes sole
+    /// responsibility for closing `fd`; the caller must not close `fd`
+    /// itself or use it after this call, and must not pass the same `fd`
+    /// to this function more than once.
     unsafe fn from_socket_descriptor(fd: SocketDescriptor) -> Self;
 }
 

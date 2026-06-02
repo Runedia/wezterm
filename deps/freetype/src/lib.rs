@@ -22,10 +22,16 @@ impl<T> __BindgenUnionField<T> {
     pub const fn new() -> Self {
         __BindgenUnionField(::std::marker::PhantomData)
     }
+    /// # Safety
+    ///
+    /// 호출자는 이 union 필드가 실제로 `T` 타입의 활성 멤버임을 보장해야 한다.
     #[inline]
     pub unsafe fn as_ref(&self) -> &T {
         ::std::mem::transmute(self)
     }
+    /// # Safety
+    ///
+    /// 호출자는 이 union 필드가 실제로 `T` 타입의 활성 멤버임을 보장해야 한다.
     #[inline]
     pub unsafe fn as_mut(&mut self) -> &mut T {
         ::std::mem::transmute(self)
@@ -40,7 +46,7 @@ impl<T> ::std::default::Default for __BindgenUnionField<T> {
 impl<T> ::std::clone::Clone for __BindgenUnionField<T> {
     #[inline]
     fn clone(&self) -> Self {
-        Self::new()
+        *self
     }
 }
 impl<T> ::std::marker::Copy for __BindgenUnionField<T> {}

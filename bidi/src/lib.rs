@@ -23,10 +23,12 @@ pub use direction::Direction;
 pub use level::Level;
 
 /// Placeholder codepoint index that corresponds to NO_LEVEL
-const DELETED: usize = usize::max_value();
+const DELETED: usize = usize::MAX;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default)]
 pub enum ParagraphDirectionHint {
+    #[default]
     LeftToRight,
     RightToLeft,
     /// Attempt to auto-detect but fall back to LTR
@@ -35,11 +37,6 @@ pub enum ParagraphDirectionHint {
     AutoRightToLeft,
 }
 
-impl Default for ParagraphDirectionHint {
-    fn default() -> Self {
-        Self::LeftToRight
-    }
-}
 
 impl ParagraphDirectionHint {
     /// Returns just the direction portion of the hint, independent
@@ -110,7 +107,7 @@ impl BidiRun {
             type Item = usize;
             fn next(&mut self) -> Option<usize> {
                 for idx in self.range.by_ref() {
-                    if self.removed_by_x9.iter().any(|&i| i == idx) {
+                    if self.removed_by_x9.contains(&idx) {
                         // Skip it
                         continue;
                     }
@@ -363,8 +360,8 @@ impl BidiContext {
 
         // Initial visual order
         let mut visual = vec![];
-        for i in 0..levels.len() {
-            if levels[i].removed_by_x9() {
+        for (i, level) in levels.iter().enumerate() {
+            if level.removed_by_x9() {
                 visual.push(DELETED);
             } else {
                 visual.push(i + first_cidx);
@@ -849,7 +846,7 @@ impl BidiContext {
                 // of the substring in this isolating run sequence
                 // enclosed by those brackets (inclusive
                 // of the brackets). Resolve that individual pair.
-                self.resolve_one_pair(pair, &iso_run);
+                self.resolve_one_pair(pair, iso_run);
             }
         }
     }
@@ -1003,7 +1000,6 @@ impl BidiContext {
                     &self.orig_char_types,
                     &self.levels,
                 );
-                return;
             } else {
                 // No strong type matching the oppositedirection was found either
                 // before or after these brackets in this text chain. Resolve the
@@ -1016,7 +1012,6 @@ impl BidiContext {
                     &self.orig_char_types,
                     &self.levels,
                 );
-                return;
             }
         } else {
             // No strong type was found between the brackets. Leave
@@ -1268,7 +1263,7 @@ impl BidiContext {
             line_range: Range<usize>,
             base_level: Level,
             orig_char_types: &[BidiClass],
-            levels: &mut Vec<Level>,
+            levels: &mut [Level],
         ) {
             for i in line_range.rev() {
                 if orig_char_types[i] == BidiClass::WhiteSpace
@@ -1365,7 +1360,7 @@ impl BidiContext {
                 BidiClass::RightToLeftOverride => {
                     if let Some(level) = stack.embedding_level().least_greater_odd() {
                         if overflow_isolate == 0 && overflow_embedding == 0 {
-                            stack.push(level, Override::RTL, false);
+                            stack.push(level, Override::Rtl, false);
                             continue;
                         }
                     }
@@ -1377,7 +1372,7 @@ impl BidiContext {
                 BidiClass::LeftToRightOverride => {
                     if let Some(level) = stack.embedding_level().least_greater_even() {
                         if overflow_isolate == 0 && overflow_embedding == 0 {
-                            stack.push(level, Override::LTR, false);
+                            stack.push(level, Override::Ltr, false);
                             continue;
                         }
                     }
@@ -1465,11 +1460,10 @@ impl BidiContext {
                     } else if overflow_embedding > 0 {
                         overflow_embedding -= 1;
                     } else {
-                        if !stack.isolate_status() {
-                            if stack.depth() >= 2 {
+                        if !stack.isolate_status()
+                            && stack.depth() >= 2 {
                                 stack.pop();
                             }
-                        }
                     }
                 }
                 BidiClass::BoundaryNeutral => {}
@@ -1576,6 +1570,7 @@ impl BidiContext {
     ///   1. seqID = 0 (not yet assigned to an isolating run sequence)
     ///   2. its level matches the level we are processing
     ///   3. the first BIDIUNIT is a PDI
+    ///
     /// If all those conditions are met, assign that next level run
     /// to this isolating run sequence (set its seqID, and append to
     /// the list).
@@ -1715,22 +1710,22 @@ impl BidiContext {
 
 impl BidiClass {
     pub fn is_iso_init(self) -> bool {
-        match self {
+        matches!(
+            self,
             BidiClass::RightToLeftIsolate
-            | BidiClass::LeftToRightIsolate
-            | BidiClass::FirstStrongIsolate => true,
-            _ => false,
-        }
+                | BidiClass::LeftToRightIsolate
+                | BidiClass::FirstStrongIsolate
+        )
     }
 
     pub fn is_iso_control(self) -> bool {
-        match self {
+        matches!(
+            self,
             BidiClass::RightToLeftIsolate
-            | BidiClass::LeftToRightIsolate
-            | BidiClass::PopDirectionalIsolate
-            | BidiClass::FirstStrongIsolate => true,
-            _ => false,
-        }
+                | BidiClass::LeftToRightIsolate
+                | BidiClass::PopDirectionalIsolate
+                | BidiClass::FirstStrongIsolate
+        )
     }
 
     pub fn is_neutral(self) -> bool {
@@ -1767,8 +1762,8 @@ impl Run {
         types: &[BidiClass],
         levels: &[Level],
     ) -> Option<BidiClass> {
-        for idx in self.start..self.end {
-            if !levels[idx].removed_by_x9() {
+        for (idx, level) in levels.iter().enumerate().take(self.end).skip(self.start) {
+            if !level.removed_by_x9() {
                 return types.get(idx).cloned();
             }
         }

@@ -11,7 +11,7 @@ impl FromDynamic for OptPixelUnit {
     ) -> Result<Self, wezterm_dynamic::Error> {
         match value {
             Value::Null => Ok(Self(None)),
-            value => Ok(Self(Some(DefaultUnit::Pixels.from_dynamic_impl(value)?))),
+            value => Ok(Self(Some(DefaultUnit::Pixels.parse_dimension(value)?))),
         }
     }
 }
@@ -36,7 +36,7 @@ impl FromDynamic for PixelUnit {
         value: &Value,
         _options: FromDynamicOptions,
     ) -> Result<Self, wezterm_dynamic::Error> {
-        Ok(Self(DefaultUnit::Pixels.from_dynamic_impl(value)?))
+        Ok(Self(DefaultUnit::Pixels.parse_dimension(value)?))
     }
 }
 
@@ -60,7 +60,7 @@ impl DefaultUnit {
 }
 
 impl DefaultUnit {
-    fn from_dynamic_impl(self, value: &Value) -> Result<Dimension, String> {
+    fn parse_dimension(self, value: &Value) -> Result<Dimension, String> {
         match value {
             Value::F64(f) => Ok(self.to_dimension(f.into_inner() as f32)),
             Value::I64(i) => Ok(self.to_dimension(*i as f32)),
@@ -174,21 +174,18 @@ impl Dimension {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default)]
 pub enum GeometryOrigin {
     /// x,y relative to overall screen coordinate system.
     /// Selected position might be outside of the regions covered
     /// by the user's selected monitor placement.
+    #[default]
     ScreenCoordinateSystem,
     MainScreen,
     ActiveScreen,
     Named(String),
 }
 
-impl Default for GeometryOrigin {
-    fn default() -> Self {
-        Self::ScreenCoordinateSystem
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct GuiPosition {

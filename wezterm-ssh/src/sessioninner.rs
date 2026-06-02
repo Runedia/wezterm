@@ -190,9 +190,8 @@ impl SessionInner {
             }
         }
         if let Some(kh) = self.config.get("userknownhostsfile") {
-            for file in kh.split_whitespace() {
+            if let Some(file) = kh.split_whitespace().next() {
                 sess.set_option(libssh_rs::SshOption::KnownHosts(Some(file.to_string())))?;
-                break;
             }
         }
         if let Some(types) = self.config.get("pubkeyacceptedtypes") {

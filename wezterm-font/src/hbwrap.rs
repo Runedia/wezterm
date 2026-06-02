@@ -1,5 +1,4 @@
 //! Higher level harfbuzz bindings
-use freetype;
 
 pub use harfbuzz::*;
 
@@ -888,10 +887,12 @@ impl DrawOp {
 }
 
 impl ColorLine {
-    pub fn new_from_hb(line: *mut hb_color_line_t) -> Self {
-        let num_stops = unsafe {
-            hb_color_line_get_color_stops(line, 0, std::ptr::null_mut(), std::ptr::null_mut())
-        };
+    /// # Safety
+    /// `line` must be a valid, non-null pointer to an `hb_color_line_t`
+    /// obtained from HarfBuzz and live for the duration of this call.
+    pub unsafe fn new_from_hb(line: *mut hb_color_line_t) -> Self {
+        let num_stops =
+            hb_color_line_get_color_stops(line, 0, std::ptr::null_mut(), std::ptr::null_mut());
         let mut color_stops = Vec::with_capacity(num_stops as usize);
         color_stops.resize(
             num_stops as usize,
@@ -902,12 +903,10 @@ impl ColorLine {
             },
         );
 
-        unsafe {
-            let mut count = num_stops;
-            hb_color_line_get_color_stops(line, 0, &mut count, color_stops.as_mut_ptr());
-        }
+        let mut count = num_stops;
+        hb_color_line_get_color_stops(line, 0, &mut count, color_stops.as_mut_ptr());
 
-        let extend = unsafe { hb_color_line_get_extend(line) };
+        let extend = hb_color_line_get_extend(line);
 
         Self {
             color_stops: color_stops

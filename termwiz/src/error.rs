@@ -9,7 +9,7 @@ use thiserror::*;
 /// usecase for this!
 #[derive(Error, Debug)]
 #[error(transparent)]
-pub struct Error(pub(crate) InternalError);
+pub struct Error(pub(crate) Box<InternalError>);
 
 /// A Result whose error type is a termwiz Error
 pub type Result<T> = std::result::Result<T, Error>;
@@ -19,7 +19,7 @@ where
     E: Into<InternalError>,
 {
     fn from(err: E) -> Self {
-        Self(err.into())
+        Self(Box::new(err.into()))
     }
 }
 
@@ -166,10 +166,10 @@ where
         C: Display + Send + Sync + 'static,
     {
         self.map_err(|error| {
-            Error(InternalError::Context {
+            Error(Box::new(InternalError::Context {
                 context: context.to_string(),
                 source: Box::new(error),
-            })
+            }))
         })
     }
 
@@ -179,10 +179,10 @@ where
         F: FnOnce() -> C,
     {
         self.map_err(|error| {
-            Error(InternalError::Context {
+            Error(Box::new(InternalError::Context {
                 context: context().to_string(),
                 source: Box::new(error),
-            })
+            }))
         })
     }
 }

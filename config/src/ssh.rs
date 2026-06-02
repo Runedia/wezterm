@@ -6,33 +6,29 @@ use std::str::FromStr;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 #[derive(Debug, Clone, Copy, FromDynamic, ToDynamic)]
+#[derive(Default)]
 pub enum SshBackend {
     Ssh2,
+    #[default]
     LibSsh,
 }
 
-impl Default for SshBackend {
-    fn default() -> Self {
-        Self::LibSsh
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default)]
 pub enum SshMultiplexing {
+    #[default]
     WezTerm,
     None,
     // TODO: Tmux-cc in the future?
 }
 
-impl Default for SshMultiplexing {
-    fn default() -> Self {
-        Self::WezTerm
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default)]
 pub enum Shell {
     /// Unknown command shell: no assumptions can be made
+    #[default]
     Unknown,
 
     /// Posix shell compliant, such that `cd DIR ; exec CMD` behaves
@@ -41,11 +37,6 @@ pub enum Shell {
     // TODO: Cmd, PowerShell in the future?
 }
 
-impl Default for Shell {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
 
 #[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
 pub struct SshDomain {

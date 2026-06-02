@@ -135,31 +135,33 @@ fn load_font(font_attr: &FontAttributes, pixel_size: u16) -> anyhow::Result<Pars
     }
 }
 
-pub fn parse_log_font(log_font: &LOGFONTW, hdc: HDC) -> anyhow::Result<(ParsedFont, f64)> {
+/// # Safety
+/// `hdc` must be a valid GDI device context handle for the duration of this
+/// call; it is passed to `GetDeviceCaps`. `log_font` is read by reference and
+/// used to create a temporary GDI font that is deleted before returning.
+pub unsafe fn parse_log_font(log_font: &LOGFONTW, hdc: HDC) -> anyhow::Result<(ParsedFont, f64)> {
     let name = String::from_utf16(&log_font.lfFaceName)?;
-    unsafe {
-        let font = CreateFontIndirectW(log_font);
-        let source = extract_raw_font_data(font, &name);
-        DeleteObject(font as *mut _);
-        let source = source?;
+    let font = CreateFontIndirectW(log_font);
+    let source = extract_raw_font_data(font, &name);
+    DeleteObject(font as *mut _);
+    let source = source?;
 
-        let point_size = MulDiv(-log_font.lfHeight, 72, GetDeviceCaps(hdc, LOGPIXELSY)) as f64;
-        let pixel_size = log_font.lfHeight.abs() as u16;
+    let point_size = MulDiv(-log_font.lfHeight, 72, GetDeviceCaps(hdc, LOGPIXELSY)) as f64;
+    let pixel_size = log_font.lfHeight.unsigned_abs() as u16;
 
-        let mut attr = FontAttributes::new(&name);
-        attr.weight = config::FontWeight::from_opentype_weight(log_font.lfWeight as u16);
-        if log_font.lfItalic == 1 {
-            attr.style = WTFontStyle::Italic;
-        }
+    let mut attr = FontAttributes::new(&name);
+    attr.weight = config::FontWeight::from_opentype_weight(log_font.lfWeight as u16);
+    if log_font.lfItalic == 1 {
+        attr.style = WTFontStyle::Italic;
+    }
 
-        let mut font_info = vec![];
-        parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
-        let matches = ParsedFont::best_match(&attr, pixel_size, font_info);
+    let mut font_info = vec![];
+    parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
+    let matches = ParsedFont::best_match(&attr, pixel_size, font_info);
 
-        match matches {
-            Some(m) => Ok((m, point_size)),
-            None => anyhow::bail!("No font matching {:?} in {:?}", attr, source),
-        }
+    match matches {
+        Some(m) => Ok((m, point_size)),
+        None => anyhow::bail!("No font matching {:?} in {:?}", attr, source),
     }
 }
 
@@ -182,7 +184,7 @@ fn handle_from_descriptor(
     descriptor: &FontDescriptor,
     pixel_size: u16,
 ) -> Option<ParsedFont> {
-    let font = collection.font_from_descriptor(&descriptor).ok()??;
+    let font = collection.font_from_descriptor(descriptor).ok()??;
     let face = font.create_font_face();
     for file in face.files().ok()? {
         if let Ok(path) = file.font_file_path() {
