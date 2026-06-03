@@ -58,8 +58,6 @@ docs = ["widgets", "use_serde", "image", "tmux_cc"]
 
 [dev-dependencies]
 criterion.workspace = true
-env_logger.workspace = true
-k9.workspace = true
 
 [target."cfg(windows)".dependencies.winapi]
 features = [

@@ -528,12 +528,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
 
 [[package]]
-name = "bytes"
-version = "1.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
-
-[[package]]
 name = "cairo-rs"
 version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4630,14 +4624,12 @@ dependencies = [
  "bitflags 2.10.0",
  "cassowary",
  "criterion",
- "env_logger 0.11.8",
  "fancy-regex",
  "filedescriptor",
  "finl_unicode",
  "fixedbitset",
  "fnv",
  "image",
- "k9",
  "libc",
  "log",
  "memmem",
@@ -5298,7 +5290,6 @@ name = "wezterm-char-props"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "k9",
  "phf",
  "serde",
  "termwiz",
@@ -5387,7 +5378,6 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.10.0",
- "criterion",
  "env_logger 0.11.8",
  "hex",
  "image",
@@ -5718,6 +5708,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "wezterm-vscode"
+version = "0.1.0"
+
+[[package]]
 name = "wgpu"
 version = "25.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5917,7 +5911,6 @@ dependencies = [
  "async-task",
  "async-trait",
  "bitflags 1.3.2",
- "bytes",
  "clipboard-win",
  "config",
  "downcast-rs",
@@ -5925,7 +5918,6 @@ dependencies = [
  "gl_generator",
  "glium",
  "guillotiere",
- "k9",
  "lazy_static",
  "libloading",
  "line_drawing",
@@ -5937,7 +5929,6 @@ dependencies = [
  "serde",
  "shared_library",
  "thiserror 1.0.69",
- "tiny-skia",
  "url",
  "wezterm-bidi",
  "wezterm-color-types",

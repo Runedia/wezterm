@@ -3,15 +3,15 @@
 ; vim:ts=2:sw=2:et:
 
 #define MyAppName "WezTerm"
-;#define MyAppVersion "1.5"
-#define MyAppPublisher "Wez Furlong"
-#define MyAppURL "http://wezterm.org"
+#define MyAppVersion "1.0"
+#define MyAppPublisher "Runedia"
+#define MyAppURL "https://github.com/Runedia/wezterm"
 #define MyAppExeName "wezterm-gui.exe"
 
 [Setup]
-AppId={{BCF6F0DA-5B9A-408D-8562-F680AE6E1EAF}
-ArchitecturesAllowed=x64 arm64
-ArchitecturesInstallIn64BitMode=x64 arm64
+AppId={{BCF6F0DA-5B9A-408D-4826-F680AE6E1EAF}
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -46,12 +46,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\target\release\wezterm.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\wezterm-gui.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\wezterm-mux-server.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\target\release\wezterm-vscode.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\mesa\opengl32.dll"; DestDir: "{app}\mesa"; Flags: ignoreversion
 Source: "..\target\release\libEGL.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\libGLESv2.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\conpty.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\OpenConsole.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\strip-ansi-escapes.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

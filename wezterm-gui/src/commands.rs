@@ -812,7 +812,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
         ActivateTab(-1) => CommandDef {
             brief: "Activate right-most tab".into(),
             doc: "Activates the tab on the far right".into(),
-            keys: vec![(Modifiers::SUPER, "9".into())],
+            keys: vec![(Modifiers::CTRL | Modifiers::SHIFT, "9".into())],
             args: &[ArgType::Window],
             menubar: &["Window", "Select Tab"],
             icon: None,
@@ -821,7 +821,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             let n = *n;
             let ordinal = english_ordinal(n + 1);
             let keys = if (0..=7).contains(&n) {
-                vec![(Modifiers::SUPER, (n + 1).to_string())]
+                vec![(Modifiers::CTRL | Modifiers::SHIFT, (n + 1).to_string())]
             } else {
                 vec![]
             };

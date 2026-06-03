@@ -22,7 +22,6 @@ use_serde = ["serde"]
 
 [dev-dependencies]
 criterion.workspace = true
-k9.workspace = true
 termwiz.workspace = true
 
 [[bench]]

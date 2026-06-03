@@ -8,9 +8,6 @@ description = "Cross platform window setup and render"
 license = "MIT"
 build = "build.rs"
 
-[dev-dependencies]
-k9.workspace = true
-
 [build-dependencies]
 gl_generator.workspace = true
 
@@ -20,7 +17,6 @@ async-io.workspace = true
 async-task.workspace = true
 async-trait.workspace = true
 anyhow.workspace = true
-bytes.workspace = true
 config.workspace = true
 downcast-rs.workspace = true
 thiserror.workspace = true
@@ -36,7 +32,6 @@ promise.workspace = true
 raw-window-handle.workspace = true
 resize.workspace = true
 serde = {workspace=true, features = ["rc", "derive"]}
-tiny-skia.workspace = true
 glium.workspace = true
 url.workspace = true
 wezterm-bidi.workspace = true
